@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>AMfast Förvaltningsportal — Rentroll &amp; Fakturering</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --ink:#16233F;
+  --ink-soft:#3C4A68;
+  --bg:#EFF2F6;
+  --bg-warm:#F5F4EF;
+  --surface:#FFFFFF;
+  --surface-sunken:#F5F6F9;
+  --line:#DCE1E8;
+  --line-soft:#E9ECF1;
+  --navy:#1F3A5F;
+  --navy-deep:#122437;
+  --gold:#A6812E;
+  --gold-soft:#F4ECD8;
+  --green:#2E7D5B;
+  --green-soft:#E4F1EA;
+  --wine:#8E2A3B;
+  --wine-soft:#F6E7EA;
+  --amber:#B4711E;
+  --amber-soft:#FBEDDD;
+  --muted:#6B7386;
+  --radius:10px;
+  --shadow: 0 1px 2px rgba(22,35,63,0.06), 0 6px 20px -8px rgba(22,35,63,0.12);
+  --font-display:'Fraunces', serif;
+  --font-body:'Inter', sans-serif;
+  --font-mono:'IBM Plex Mono', monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--font-body);
+  background:
+    radial-gradient(1200px 500px at 8% -10%, #E9EEF5 0%, transparent 60%),
+    var(--bg);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+
+/* ============ SCROLLBAR / SELECTION ============ */
+::selection{background:var(--gold-soft); color:var(--navy-deep);}
+
+/* ============ LAYOUT SHELL ============ */
+.shell{max-width:1320px;margin:0 auto;padding:0 24px 80px;}
+
+/* ============ TOPBAR ============ */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px;
+  max-width:1320px;margin:0 auto;
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-mark{
+  width:38px;height:38px;border-radius:9px;
+  background:linear-gradient(145deg,var(--navy),var(--navy-deep));
+  display:flex;align-items:center;justify-content:center;
+  color:var(--gold-soft);font-family:var(--font-display);font-weight:700;font-size:16px;
+  box-shadow: var(--shadow);
+}
+.brand-text{line-height:1.15;}
+.brand-text .b1{font-family:var(--font-display);font-weight:600;font-size:18px;letter-spacing:.2px;}
+.brand-text .b2{font-size:11.5px;color:var(--muted);letter-spacing:.3px;}
+.topbar-right{display:flex;align-items:center;gap:18px;}
+.asof{
+  font-family:var(--font-mono);font-size:11.5px;color:var(--muted);
+  background:var(--surface);border:1px solid var(--line);border-radius:999px;
+  padding:6px 12px;display:flex;align-items:center;gap:7px;
+}
+.asof .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-soft);}
+
+/* ============ HERO ============ */
+.hero{
+  background:linear-gradient(160deg, var(--navy-deep) 0%, var(--navy) 62%, #2A4E78 100%);
+  border-radius:18px;
+  padding:34px 34px 28px;
+  color:#EEF2F8;
+  position:relative;
+  overflow:hidden;
+  box-shadow:var(--shadow);
+  margin-bottom:22px;
+}
+.hero::before{
+  content:"";position:absolute; inset:0;
+  background-image: repeating-linear-gradient(100deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 64px);
+  pointer-events:none;
+}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap;position:relative;}
+.eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#B9C6DA;margin-bottom:8px;}
+.hero h1{font-family:var(--font-display);font-weight:600;font-size:32px;margin:0 0 6px;letter-spacing:.1px;}
+.hero p.sub{margin:0;color:#C4D0E2;font-size:14px;max-width:520px;line-height:1.5;}
+.portfolio-total{text-align:right;}
+.portfolio-total .num{font-family:var(--font-display);font-weight:600;font-size:36px;letter-spacing:.2px;}
+.portfolio-total .lbl{font-size:11.5px;color:#B9C6DA;text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
+
+/* KPI row inside hero */
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,0.12);border-radius:12px;overflow:hidden;margin-top:26px;position:relative;}
+.kpi{background:rgba(255,255,255,0.045);padding:16px 18px;}
+.kpi .k-lbl{font-size:11px;color:#AFC0D6;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.kpi .k-val{font-family:var(--font-mono);font-weight:600;font-size:20px;color:#F5F7FB;}
+.kpi .k-val small{font-family:var(--font-body);font-weight:500;font-size:12px;color:#AFC0D6;margin-left:3px;}
+
+@media (max-width: 900px){ .kpis{grid-template-columns:repeat(2,1fr);} .hero-top{flex-direction:column;} .portfolio-total{text-align:left;} }
+
+/* ============ TABS ============ */
+.tabs{display:flex;gap:6px;margin:26px 0 18px;border-bottom:1px solid var(--line);position:relative;flex-wrap:wrap;}
+.tab{
+  font-family:var(--font-body);font-weight:600;font-size:13.5px;color:var(--muted);
+  padding:10px 4px;margin-right:22px;cursor:pointer;position:relative;
+  border-bottom:2px solid transparent;transition:color .15s ease;
+  user-select:none;
+}
+.tab:hover{color:var(--ink);}
+.tab.active{color:var(--navy);border-bottom-color:var(--gold);}
+
+.view{display:none;}
+.view.active{display:block; animation:fadeIn .25s ease;}
+@keyframes fadeIn{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+/* ============ PROPERTY PICKER (Översikt) ============ */
+.prop-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:26px;}
+@media (max-width:980px){.prop-grid{grid-template-columns:1fr;}}
+.prop-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 20px 16px; box-shadow:var(--shadow);
+}
+.prop-card .p-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;}
+.prop-card h3{font-family:var(--font-display);font-weight:600;font-size:19px;margin:0;}
+.prop-card .p-owner{font-size:11.5px;color:var(--muted);margin-bottom:14px;}
+.prop-card .p-addr{font-size:12px;color:var(--muted);margin-top:-10px;margin-bottom:14px;}
+
+/* occupancy ribbon — signature element */
+.ribbon{display:flex;height:16px;border-radius:5px;overflow:hidden;background:var(--surface-sunken);border:1px solid var(--line-soft);}
+.ribbon .seg{height:100%; position:relative;}
+.ribbon .seg.vac{
+  background-repeat:repeat;
+  background-image: repeating-linear-gradient(135deg, var(--wine-soft) 0 4px, #fff 4px 8px);
+  border-right:1px solid rgba(255,255,255,0.6);
+}
+.ribbon .seg.occ{border-right:1px solid rgba(255,255,255,0.55);}
+.ribbon-meta{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:7px;font-family:var(--font-mono);}
+.p-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;}
+.p-stat .s-lbl{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.p-stat .s-val{font-family:var(--font-mono);font-weight:600;font-size:15px;margin-top:2px;}
+.p-stat .s-val.warn{color:var(--wine);}
+.p-foot{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);font-size:12px;color:var(--navy);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;}
+.p-foot:hover{color:var(--gold);}
+
+/* ============ SECTION LABEL ============ */
+.section-label{
+  font-family:var(--font-display);font-style:italic;font-weight:500;font-size:14px;color:var(--ink-soft);
+  margin:30px 0 12px; display:flex;align-items:center;gap:10px;
+}
+.section-label::after{content:"";flex:1;height:1px;background:var(--line);}
+
+/* ============ ALERT LIST ============ */
+.alert-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media (max-width:980px){.alert-grid{grid-template-columns:1fr;}}
+.alert-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.alert-card .ac-head{padding:14px 18px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;justify-content:space-between;}
+.alert-card .ac-head h4{margin:0;font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.count-pill{font-family:var(--font-mono);font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;}
+.count-pill.wine{background:var(--wine-soft);color:var(--wine);}
+.count-pill.amber{background:var(--amber-soft);color:var(--amber);}
+.count-pill.navy{background:#E7ECF3;color:var(--navy);}
+.alert-item{padding:11px 18px;font-size:13px;display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line-soft);}
+.alert-item:last-child{border-bottom:none;}
+.alert-item .ai-left b{font-weight:600;}
+.alert-item .ai-left .sub{color:var(--muted);font-size:11.5px;margin-top:1px;}
+.alert-item .ai-right{font-family:var(--font-mono);font-size:12px;color:var(--muted);white-space:nowrap;text-align:right;}
+.empty-note{padding:16px 18px;font-size:12.5px;color:var(--muted);font-style:italic;}
+
+/* ============ FILTER BAR (Objekt view) ============ */
+.filterbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+.pill-btn{
+  font-family:var(--font-body);font-size:12.5px;font-weight:600;color:var(--ink-soft);
+  background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer;
+  transition:all .15s ease;
+}
+.pill-btn:hover{border-color:var(--navy);}
+.pill-btn.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.search-wrap{margin-left:auto;position:relative;}
+.search-wrap input{
+  font-family:var(--font-body);font-size:13px;
+  border:1px solid var(--line);border-radius:8px;padding:8px 12px 8px 30px;width:220px;
+  background:var(--surface);
+}
+.search-wrap svg{position:absolute;left:10px;top:9px;opacity:.4;}
+
+/* ============ TABLE ============ */
+.table-wrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+table{width:100%;border-collapse:collapse;font-size:12.8px;}
+thead th{
+  text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+  background:var(--surface-sunken);padding:10px 14px;border-bottom:1px solid var(--line);font-weight:600;white-space:nowrap;
+}
+thead th.num, td.num{text-align:right;}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--line-soft);vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:#FAFBFD;}
+td.mono, th.mono{font-family:var(--font-mono);}
+.obj-id{font-family:var(--font-mono);font-weight:600;color:var(--navy);}
+.tenant-empty{color:var(--muted);font-style:italic;}
+.badge{
+  font-family:var(--font-body);font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px;display:inline-block;letter-spacing:.02em;
+}
+.badge.occ{background:var(--green-soft);color:var(--green);}
+.badge.vac{background:var(--wine-soft);color:var(--wine);}
+.contract-soon{color:var(--amber);font-weight:600;}
+.contract-none{color:var(--muted);}
+
+/* ============ INVOICE VIEW ============ */
+.inv-summary{display:flex;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
+.inv-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 20px;box-shadow:var(--shadow);flex:1;min-width:160px;}
+.inv-card .i-lbl{font-size:10.5px;text-transform:uppercase;color:var(--muted);letter-spacing:.05em;}
+.inv-card .i-val{font-family:var(--font-mono);font-weight:600;font-size:19px;margin-top:4px;}
+.tenant-group{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden;}
+.tg-head{padding:13px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--surface);}
+.tg-head:hover{background:var(--surface-sunken);}
+.tg-head .tg-name{font-weight:700;font-size:13.5px;}
+.tg-head .tg-obj{font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-left:8px;}
+.tg-head .tg-right{display:flex;align-items:center;gap:12px;}
+.tg-total{font-family:var(--font-mono);font-weight:600;font-size:14px;}
+.flag-pill{font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--amber-soft);color:var(--amber);}
+.flag-pill.miss{background:var(--wine-soft);color:var(--wine);}
+.chevron{transition:transform .2s ease;opacity:.5;}
+.tenant-group.open .chevron{transform:rotate(90deg);}
+.tg-body{max-height:0;overflow:hidden;transition:max-height .25s ease;}
+.tenant-group.open .tg-body{max-height:600px;}
+.tg-row{display:grid;grid-template-columns:90px 100px 1fr 110px 90px;gap:10px;padding:9px 18px;font-size:12.5px;border-top:1px solid var(--line-soft);align-items:center;}
+.tg-row .fnr{font-family:var(--font-mono);color:var(--navy);font-weight:600;}
+.tg-row .per{font-family:var(--font-mono);color:var(--muted);}
+.tg-row .note{color:var(--amber);font-size:11.5px;}
+.tg-row .due{font-family:var(--font-mono);color:var(--muted);text-align:right;}
+.tg-row .amt{font-family:var(--font-mono);font-weight:600;text-align:right;}
+
+footer.pagefoot{margin-top:44px;text-align:center;font-size:11px;color:var(--muted);font-family:var(--font-mono);}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">AM</div>
+    <div class="brand-text">
+      <div class="b1">AMfast Förvaltningsportal</div>
+      <div class="b2">AMfast Fastighetsförvaltning AB</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="asof"><span class="dot"></span>Data per 2026-06-08</div>
+  </div>
+</div>
+
+<div class="shell">
+
+  <div class="hero">
+    <div class="hero-top">
+      <div>
+        <div class="eyebrow">AMfast · Förvaltare Emelie Lindfors</div>
+        <h1>Portföljöversikt</h1>
+        <p class="sub">Aeolus 1, Diana 2 och Juno 9 — Skeppsbron / Slottsbacken / Brunnsgränd / Svartmangatan, Stockholm. Förvaltas av AMfast Fastighetsförvaltning AB för Dina Palaisbacken AB och Dina Försäkringar AB.</p>
+      </div>
+      <div class="portfolio-total">
+        <div class="num" id="hero-total">–</div>
+        <div class="lbl">Kontrakterad hyresintäkt / år</div>
+      </div>
+    </div>
+    <div class="kpis" id="kpi-row"></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-view="oversikt">Översikt</div>
+    <div class="tab" data-view="objekt">Objekt &amp; kontrakt</div>
+    <div class="tab" data-view="fakturor">Fakturor — Q3 2026</div>
+    <div class="tab" data-view="atgarder">Åtgärder</div>
+  </div>
+
+  <!-- ===================== ÖVERSIKT ===================== -->
+  <div class="view active" id="view-oversikt">
+    <div class="prop-grid" id="prop-grid"></div>
+
+    <div class="section-label">Kräver uppmärksamhet</div>
+    <div class="alert-grid" id="mini-alerts"></div>
+  </div>
+
+  <!-- ===================== OBJEKT ===================== -->
+  <div class="view" id="view-objekt">
+    <div class="filterbar" id="filterbar">
+      <button class="pill-btn active" data-f="alla">Alla fastigheter</button>
+      <button class="pill-btn" data-f="Aeolus 1">Aeolus 1</button>
+      <button class="pill-btn" data-f="Diana 2">Diana 2</button>
+      <button class="pill-btn" data-f="Juno 9">Juno 9</button>
+      <div class="search-wrap">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.6" y2="16.6"/></svg>
+        <input id="search" placeholder="Sök hyresgäst eller objekt…"/>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Objekt</th><th>Typ</th><th>Hyresgäst</th>
+            <th class="num">Area</th><th class="num">Kr/m²</th>
+            <th class="num">Hyra/år</th><th class="num">Fskatt/år</th><th class="num">Totalt/år</th>
+            <th>Kontrakt t.o.m</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="obj-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== FAKTUROR ===================== -->
+  <div class="view" id="view-fakturor">
+    <div class="inv-summary" id="inv-summary"></div>
+    <div class="section-label">Per hyresgäst — juli–september 2026</div>
+    <div id="inv-groups"></div>
+  </div>
+
+  <!-- ===================== ÅTGÄRDER ===================== -->
+  <div class="view" id="view-atgarder">
+    <div class="alert-grid" id="full-alerts"></div>
+  </div>
+
+  <footer class="pagefoot">Sammanställt från rentroll (RentRoll Dina Försäkringar.xlsx) och hyresavier Q3 2026 · Endast för internt bruk</footer>
+</div>
+
+<script>
+const OBJECTS = [{"objekt": "851-1001", "fastighet": "Aeolus 1", "typ": "Förråd", "hyresgast": "Bistro Nordique AB", "area": 8, "krkvm": 1000, "hyra_ar": 8003, "fskatt_ar": 0, "ovrigt_ar": 0, "total_ar": 8003, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2022-05-01", "kontrakt_tom": "2026-07-31", "dagar_kvar": 53, "gata": "Österlånggatan 1", "plan": null, "momsat": true}, {"objekt": "851-1002", "fastighet": "Aeolus 1", "typ": "Rest/Cafe", "hyresgast": "Bistro Nordique AB", "area": 207, "krkvm": 2801, "hyra_ar": 579807, "fskatt_ar": 87210, "ovrigt_ar": 59361, "total_ar": 726378, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2022-05-01", "kontrakt_tom": "2026-07-31", "dagar_kvar": 53, "gata": "Österlånggatan 1", "plan": null, "momsat": true}, {"objekt": "851-1003", "fastighet": "Aeolus 1", "typ": "Kontor", "hyresgast": "Dina Försäkring AB", "area": 3070, "krkvm": 4124, "hyra_ar": 12660983, "fskatt_ar": 1362300, "ovrigt_ar": 0, "total_ar": 14023283, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2007-01-22", "kontrakt_tom": "2026-06-30", "dagar_kvar": 22, "gata": "Skeppsbron 2", "plan": "2-7", "momsat": false}, {"objekt": "851-1004", "fastighet": "Aeolus 1", "typ": "Kontorshotell", "hyresgast": "Helioworks Slottsbacken AB", "area": 1500, "krkvm": 4605, "hyra_ar": 6906824, "fskatt_ar": 646950, "ovrigt_ar": 560012, "total_ar": 8113786, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2021-05-01", "kontrakt_tom": "2032-03-31", "dagar_kvar": 2123, "gata": "Slottsbacken 8", "plan": "2-6", "momsat": true}, {"objekt": "851-1005", "fastighet": "Aeolus 1", "typ": "Kontor", "hyresgast": null, "area": 1568, "krkvm": 683, "hyra_ar": 0, "fskatt_ar": 0, "ovrigt_ar": 0, "total_ar": 0, "vakanshyra_ar": 1070880, "status": "vakant", "kontrakt_from": "2025-04-01", "kontrakt_tom": null, "dagar_kvar": null, "gata": "Slottsbacken 10", "plan": "2-4", "momsat": true}, {"objekt": "851-1006", "fastighet": "Aeolus 1", "typ": "Lager", "hyresgast": "Telia Company AB", "area": 35, "krkvm": 1469, "hyra_ar": 51419, "fskatt_ar": 0, "ovrigt_ar": 0, "total_ar": 51419, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "1996-01-01", "kontrakt_tom": "2026-01-01", "dagar_kvar": -158, "gata": "Skeppsbron 2", "plan": "1", "momsat": true}, {"objekt": "851-1007", "fastighet": "Aeolus 1", "typ": "Lokal", "hyresgast": "Helioworks Slottsbacken AB", "area": 197, "krkvm": 1473, "hyra_ar": 290262, "fskatt_ar": 0, "ovrigt_ar": 0, "total_ar": 290262, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2023-10-01", "kontrakt_tom": "2026-09-30", "dagar_kvar": 114, "gata": "Skeppsbron 2/ Slottsbacken 8-10/ Österlånggatan 2", "plan": null, "momsat": true}, {"objekt": "851-1008", "fastighet": "Aeolus 1", "typ": "Förråd", "hyresgast": "Helioworks Slottsbacken AB", "area": 27, "krkvm": 1549, "hyra_ar": 41814, "fskatt_ar": 0, "ovrigt_ar": 0, "total_ar": 41814, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2021-05-01", "kontrakt_tom": "2032-03-31", "dagar_kvar": 2123, "gata": "Slottsbacken 8", "plan": null, "momsat": true}, {"objekt": "851-1009", "fastighet": "Aeolus 1", "typ": "Förråd", "hyresgast": "Bistro Nordique AB", "area": 7.5, "krkvm": 906, "hyra_ar": 6798, "fskatt_ar": 0, "ovrigt_ar": 0, "total_ar": 6798, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2016-01-01", "kontrakt_tom": "2027-09-30", "dagar_kvar": 479, "gata": "Österlånggatan 1", "plan": null, "momsat": true}, {"objekt": "852-1001", "fastighet": "Diana 2", "typ": "Rest/Cafe", "hyresgast": null, "area": 750, "krkvm": 1988, "hyra_ar": 0, "fskatt_ar": 0, "ovrigt_ar": 0, "total_ar": 0, "vakanshyra_ar": 1491219, "status": "vakant", "kontrakt_from": "2024-09-24", "kontrakt_tom": null, "dagar_kvar": null, "gata": "Brunnsgränd 2-4", "plan": "Bv", "momsat": true}, {"objekt": "852-1002", "fastighet": "Diana 2", "typ": "Kontor", "hyresgast": "Gigapay Sweden AB", "area": 220, "krkvm": 4586, "hyra_ar": 1008956, "fskatt_ar": 84680, "ovrigt_ar": 0, "total_ar": 1093636, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2022-11-14", "kontrakt_tom": "2025-11-13", "dagar_kvar": -207, "gata": "Brunnsgränd 4", "plan": "5", "momsat": true}, {"objekt": "852-1003", "fastighet": "Diana 2", "typ": "Kyrkoverksamhet", "hyresgast": null, "area": 530, "krkvm": 3916, "hyra_ar": 0, "fskatt_ar": 0, "ovrigt_ar": 0, "total_ar": 0, "vakanshyra_ar": 2075239, "status": "vakant", "kontrakt_from": "2024-10-01", "kontrakt_tom": null, "dagar_kvar": null, "gata": "Brunnsgränd 4", "plan": "4", "momsat": false}, {"objekt": "852-1004", "fastighet": "Diana 2", "typ": "Kyrkoverksamhet", "hyresgast": "Romersk-Katolska Kyrkan", "area": 250, "krkvm": 3746, "hyra_ar": 936587, "fskatt_ar": 89320, "ovrigt_ar": 0, "total_ar": 1025907, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2011-10-01", "kontrakt_tom": "2027-09-30", "dagar_kvar": 479, "gata": "Brunnsgränd 4", "plan": "Bv", "momsat": false}, {"objekt": "852-1005", "fastighet": "Diana 2", "typ": "Kontorshotell", "hyresgast": "Old Castle House AB", "area": 1523, "krkvm": 3435, "hyra_ar": 5231956, "fskatt_ar": 543692, "ovrigt_ar": 158157, "total_ar": 5933805, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2015-09-01", "kontrakt_tom": "2029-10-31", "dagar_kvar": 1241, "gata": "Brunnsgränd 4", "plan": "1-3", "momsat": true}, {"objekt": "852-1006", "fastighet": "Diana 2", "typ": "Kontor", "hyresgast": "Wahlgrens Konsultbyrå AB", "area": 75, "krkvm": 4132, "hyra_ar": 309924, "fskatt_ar": 29000, "ovrigt_ar": 0, "total_ar": 338924, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2012-12-01", "kontrakt_tom": "2027-11-30", "dagar_kvar": 540, "gata": "Brunnsgränd 4", "plan": "1", "momsat": true}, {"objekt": "852-1007", "fastighet": "Diana 2", "typ": "Antennplats", "hyresgast": "Net4Mobility HB", "area": 0, "krkvm": 0, "hyra_ar": 60057, "fskatt_ar": 0, "ovrigt_ar": 0, "total_ar": 60057, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2023-05-01", "kontrakt_tom": "2033-04-30", "dagar_kvar": 2518, "gata": "Brunnsgränd 2-4", "plan": null, "momsat": false}, {"objekt": "852-2001", "fastighet": "Juno 9", "typ": "2 rum och kokvrå", "hyresgast": "Marita Lillich", "area": 37, "krkvm": 2057, "hyra_ar": 76120, "fskatt_ar": 0, "ovrigt_ar": 0, "total_ar": 76120, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2024-08-01", "kontrakt_tom": null, "dagar_kvar": null, "gata": "Svartmangatan 18", "plan": "2", "momsat": true}, {"objekt": "852-2002", "fastighet": "Juno 9", "typ": "Kontor", "hyresgast": "Decuria AB", "area": 142, "krkvm": 3298, "hyra_ar": 468293, "fskatt_ar": 65001, "ovrigt_ar": 0, "total_ar": 533294, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2011-07-01", "kontrakt_tom": "2026-09-30", "dagar_kvar": 114, "gata": "Svartmangatan 18", "plan": "1", "momsat": true}, {"objekt": "852-2003", "fastighet": "Juno 9", "typ": "Kontor", "hyresgast": "Fexet Projekt AB", "area": 25, "krkvm": 2671, "hyra_ar": 66771, "fskatt_ar": 7750, "ovrigt_ar": 0, "total_ar": 74521, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2015-04-01", "kontrakt_tom": "2026-03-31", "dagar_kvar": -69, "gata": "Svartmangatan 18", "plan": "4", "momsat": true}, {"objekt": "852-2004", "fastighet": "Juno 9", "typ": "Kontor", "hyresgast": null, "area": 20, "krkvm": 2668, "hyra_ar": 0, "fskatt_ar": 0, "ovrigt_ar": 0, "total_ar": 0, "vakanshyra_ar": 53352, "status": "vakant", "kontrakt_from": "2026-01-01", "kontrakt_tom": null, "dagar_kvar": null, "gata": "Svartmangatan 18", "plan": "Bv", "momsat": true}, {"objekt": "852-2005", "fastighet": "Juno 9", "typ": "Kontor", "hyresgast": null, "area": 37, "krkvm": 2875, "hyra_ar": 0, "fskatt_ar": 0, "ovrigt_ar": 0, "total_ar": 0, "vakanshyra_ar": 106360, "status": "vakant", "kontrakt_from": "2025-02-01", "kontrakt_tom": null, "dagar_kvar": null, "gata": "Svartmangatan 18", "plan": "1", "momsat": true}, {"objekt": "852-2006", "fastighet": "Juno 9", "typ": "Kontor", "hyresgast": "IHE, Institutet för Hälso- och Sjuksvårdsekonomi A", "area": 130, "krkvm": 4358, "hyra_ar": 566493, "fskatt_ar": 51983, "ovrigt_ar": 29898, "total_ar": 648374, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2021-11-01", "kontrakt_tom": "2026-12-31", "dagar_kvar": 206, "gata": "Svartmangatan 18", "plan": "Bv", "momsat": true}, {"objekt": "852-2007", "fastighet": "Juno 9", "typ": "Kontor", "hyresgast": "Kockum Luttinger Söderström Arkiktektkontor AB", "area": 140, "krkvm": 4818, "hyra_ar": 674536, "fskatt_ar": 55988, "ovrigt_ar": 0, "total_ar": 730524, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2024-07-01", "kontrakt_tom": "2027-06-30", "dagar_kvar": 387, "gata": "Svartmangatan 18", "plan": "2", "momsat": true}, {"objekt": "852-2008", "fastighet": "Juno 9", "typ": "Kontor", "hyresgast": null, "area": 110, "krkvm": 4040, "hyra_ar": 0, "fskatt_ar": 0, "ovrigt_ar": 0, "total_ar": 0, "vakanshyra_ar": 444421, "status": "vakant", "kontrakt_from": "2026-01-01", "kontrakt_tom": null, "dagar_kvar": null, "gata": "Svartmangatan 18", "plan": "4", "momsat": true}, {"objekt": "852-2009", "fastighet": "Juno 9", "typ": "Kontor", "hyresgast": "Paydrive AB", "area": 140, "krkvm": 4613, "hyra_ar": 645832, "fskatt_ar": 55719, "ovrigt_ar": 0, "total_ar": 724514, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2024-08-31", "kontrakt_tom": "2027-08-30", "dagar_kvar": 448, "gata": "Svartmangatan 18", "plan": "3", "momsat": true}, {"objekt": "852-2010", "fastighet": "Juno 9", "typ": "Kontor", "hyresgast": "The Flow E-Networks AB", "area": 37, "krkvm": 2671, "hyra_ar": 98821, "fskatt_ar": 11470, "ovrigt_ar": 0, "total_ar": 110291, "vakanshyra_ar": 0, "status": "uthyrd", "kontrakt_from": "2015-04-01", "kontrakt_tom": "2026-03-31", "dagar_kvar": -69, "gata": "Svartmangatan 18", "plan": "3", "momsat": true}];
+const INVOICES = [{"fnr": "851000168", "fastighet": "Aeolus 1", "objekt": "851-1001/1002/1009", "hyresgast": "Bistro Nordique AB", "period": "2026-07", "forfallo": "2026-06-30", "belopp": 77208, "anm": null}, {"fnr": "851000169", "fastighet": "Aeolus 1", "objekt": "851-1001/1002/1009", "hyresgast": "Bistro Nordique AB", "period": "2026-08", "forfallo": "2026-07-31", "belopp": 77208, "anm": null}, {"fnr": "851000170", "fastighet": "Aeolus 1", "objekt": "851-1001/1002/1009", "hyresgast": "Bistro Nordique AB", "period": "2026-09", "forfallo": "2026-08-31", "belopp": 77208, "anm": null}, {"fnr": "851000171", "fastighet": "Aeolus 1", "objekt": "851-1003", "hyresgast": "Dina Försäkring AB", "period": "2026-Q3", "forfallo": "2026-06-30", "belopp": 3505821, "anm": null}, {"fnr": "851000172", "fastighet": "Aeolus 1", "objekt": "851-1004/1008", "hyresgast": "Helioworks Slottsbacken AB", "period": "2026-07", "forfallo": "2026-06-30", "belopp": 849603, "anm": "Påminnelseavgift 60 kr (maj)"}, {"fnr": "851000173", "fastighet": "Aeolus 1", "objekt": "851-1004/1008", "hyresgast": "Helioworks Slottsbacken AB", "period": "2026-08", "forfallo": "2026-07-31", "belopp": 849543, "anm": null}, {"fnr": "851000174", "fastighet": "Aeolus 1", "objekt": "851-1004/1008", "hyresgast": "Helioworks Slottsbacken AB", "period": "2026-09", "forfallo": "2026-08-31", "belopp": 849543, "anm": null}, {"fnr": "851000175", "fastighet": "Aeolus 1", "objekt": "851-1006", "hyresgast": "Telia Company AB", "period": "2026-Q3", "forfallo": "2026-06-30", "belopp": 16129, "anm": "Påminnelseavgift 60 kr (apr–jun)"}, {"fnr": "851000176", "fastighet": "Aeolus 1", "objekt": "851-1007", "hyresgast": "Helioworks Slottsbacken AB", "period": "2026-Q3", "forfallo": "2026-06-30", "belopp": 90708, "anm": null}, {"fnr": "851000177", "fastighet": "Aeolus 1", "objekt": "851-1011", "hyresgast": "Endra Systems AB", "period": "2026-Q3", "forfallo": "2026-06-30", "belopp": 2074124, "anm": "Saknas i rentroll · påminnelseavgift 60 kr"}, {"fnr": "851000178", "fastighet": "Aeolus 1", "objekt": "851-1012", "hyresgast": "Asko Appliances AB", "period": "2026-Q3", "forfallo": "2026-07-09", "belopp": 1442600, "anm": "Saknas i rentroll"}, {"fnr": "852000447", "fastighet": "Diana 2", "objekt": "852-1002", "hyresgast": "Gigapay Sweden AB", "period": "2026-Q3", "forfallo": "2026-06-30", "belopp": 341761, "anm": "Kontrakt löpte ut 2025-11-13"}, {"fnr": "852000448", "fastighet": "Diana 2", "objekt": "852-1004", "hyresgast": "Romersk-Katolska Kyrkan", "period": "2026-07", "forfallo": "2026-06-30", "belopp": 85492, "anm": null}, {"fnr": "852000449", "fastighet": "Diana 2", "objekt": "852-1004", "hyresgast": "Romersk-Katolska Kyrkan", "period": "2026-08", "forfallo": "2026-07-31", "belopp": 85492, "anm": null}, {"fnr": "852000450", "fastighet": "Diana 2", "objekt": "852-1004", "hyresgast": "Romersk-Katolska Kyrkan", "period": "2026-09", "forfallo": "2026-08-31", "belopp": 85492, "anm": null}, {"fnr": "852000451", "fastighet": "Diana 2", "objekt": "852-1005", "hyresgast": "Old Castle House AB", "period": "2026-07", "forfallo": "2026-06-30", "belopp": 622345, "anm": "Dröjsmålsränta + 2 påminnelseavgifter (apr–maj)"}, {"fnr": "852000452", "fastighet": "Diana 2", "objekt": "852-1005", "hyresgast": "Old Castle House AB", "period": "2026-08", "forfallo": "2026-07-31", "belopp": 618105, "anm": null}, {"fnr": "852000453", "fastighet": "Diana 2", "objekt": "852-1005", "hyresgast": "Old Castle House AB", "period": "2026-09", "forfallo": "2026-08-31", "belopp": 618105, "anm": null}, {"fnr": "852000454", "fastighet": "Diana 2", "objekt": "852-1006", "hyresgast": "Wahlgrens Konsultbyrå AB", "period": "2026-07", "forfallo": "2026-06-30", "belopp": 35305, "anm": null}, {"fnr": "852000455", "fastighet": "Diana 2", "objekt": "852-1006", "hyresgast": "Wahlgrens Konsultbyrå AB", "period": "2026-08", "forfallo": "2026-07-31", "belopp": 35305, "anm": null}, {"fnr": "852000456", "fastighet": "Diana 2", "objekt": "852-1006", "hyresgast": "Wahlgrens Konsultbyrå AB", "period": "2026-09", "forfallo": "2026-08-31", "belopp": 35305, "anm": null}];
+
+</script>
+<script>
+const fmt = n => Math.round(n).toLocaleString('sv-SE');
+const fmtArea = n => (n%1===0? n : n.toFixed(1)).toString().replace('.',',');
+const PROP_COLORS = {
+  'Aeolus 1':'#1F3A5F',
+  'Diana 2':'#A6812E',
+  'Juno 9':'#2E7D5B'
+};
+
+// ---------- derive per-fastighet aggregates ----------
+function aggregate(objs){
+  const areaTot = objs.reduce((s,o)=>s+o.area,0);
+  const areaVac = objs.filter(o=>o.status==='vakant').reduce((s,o)=>s+o.area,0);
+  const hyraTot = objs.reduce((s,o)=>s+o.total_ar,0);
+  const vakansHyraTot = objs.reduce((s,o)=>s+o.vakanshyra_ar,0);
+  const nVac = objs.filter(o=>o.status==='vakant').length;
+  return {areaTot, areaVac, hyraTot, vakansHyraTot, nVac, n:objs.length};
+}
+
+const fastigheter = ['Aeolus 1','Diana 2','Juno 9'];
+const byFastighet = {};
+fastigheter.forEach(f=> byFastighet[f] = OBJECTS.filter(o=>o.fastighet===f));
+
+// ---------- HERO KPIs ----------
+const allAgg = aggregate(OBJECTS);
+document.getElementById('hero-total').textContent = fmt(allAgg.hyraTot) + ' kr';
+const beladgning = ((allAgg.areaTot-allAgg.areaVac)/allAgg.areaTot*100);
+const kpiRow = document.getElementById('kpi-row');
+const kpis = [
+  ['Antal objekt', allAgg.n, ''],
+  ['Uthyrningsgrad, area', beladgning.toFixed(1).replace('.',',') , '%'],
+  ['Uthyrd area', fmt(allAgg.areaTot-allAgg.areaVac), 'kvm'],
+  ['Vakant area', fmt(allAgg.areaVac), 'kvm'],
+  ['Vakanta objekt', allAgg.nVac, 'st'],
+];
+kpiRow.innerHTML = kpis.map(k=>`
+  <div class="kpi"><div class="k-lbl">${k[0]}</div><div class="k-val">${k[1]}<small>${k[2]}</small></div></div>
+`).join('');
+
+// ---------- PROPERTY CARDS with occupancy ribbon ----------
+const propGrid = document.getElementById('prop-grid');
+propGrid.innerHTML = fastigheter.map(f=>{
+  const objs = byFastighet[f];
+  const agg = aggregate(objs);
+  const color = PROP_COLORS[f];
+  const segs = objs.map(o=>{
+    const w = (o.area/agg.areaTot*100).toFixed(2);
+    if(o.status==='vakant') return `<div class="seg vac" style="width:${w}%" title="${o.objekt} · vakant · ${fmtArea(o.area)} kvm"></div>`;
+    return `<div class="seg occ" style="width:${w}%; background:${color}" title="${o.objekt} · ${o.hyresgast} · ${fmtArea(o.area)} kvm"></div>`;
+  }).join('');
+  const owner = objs[0].fastighet==='Juno 9' ? 'Dina Försäkringar AB' : (f==='Aeolus 1' ? 'Dina Palaisbacken AB' : 'Dina Försäkringar AB');
+  const addr = [...new Set(objs.map(o=>o.gata))].join(' · ');
+  const belPct = ((agg.areaTot-agg.areaVac)/agg.areaTot*100).toFixed(0);
+  return `
+  <div class="prop-card">
+    <div class="p-head"><h3>${f}</h3><span style="font-family:var(--font-mono);font-size:11px;color:var(--muted)">${objs.length} objekt</span></div>
+    <div class="p-owner">${owner}</div>
+    <div class="p-addr">${addr}</div>
+    <div class="ribbon">${segs}</div>
+    <div class="ribbon-meta"><span>${belPct}% uthyrt</span><span>${fmtArea(agg.areaTot)} kvm totalt</span></div>
+    <div class="p-stats">
+      <div class="p-stat"><div class="s-lbl">Hyresintäkt/år</div><div class="s-val">${fmt(agg.hyraTot)} kr</div></div>
+      <div class="p-stat"><div class="s-lbl">Vakant hyresvärde/år</div><div class="s-val ${agg.vakansHyraTot>0?'warn':''}">${fmt(agg.vakansHyraTot)} kr</div></div>
+    </div>
+    <div class="p-foot" data-goto="${f}">Visa objekt →</div>
+  </div>`;
+}).join('');
+
+propGrid.querySelectorAll('.p-foot').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    switchView('objekt');
+    setFilter(el.dataset.goto);
+  });
+});
+
+// ---------- OBJECT TABLE ----------
+const tbody = document.getElementById('obj-tbody');
+let currentFilter = 'alla';
+let currentSearch = '';
+
+function renderTable(){
+  const rows = OBJECTS.filter(o=>{
+    const fMatch = currentFilter==='alla' || o.fastighet===currentFilter;
+    const s = currentSearch.toLowerCase();
+    const sMatch = !s || o.objekt.toLowerCase().includes(s) || (o.hyresgast||'').toLowerCase().includes(s) || o.typ.toLowerCase().includes(s);
+    return fMatch && sMatch;
+  });
+  tbody.innerHTML = rows.map(o=>{
+    let contractCell = '<span class="contract-none">—</span>';
+    if(o.kontrakt_tom){
+      const soon = o.dagar_kvar!==null && o.dagar_kvar < 200;
+      contractCell = `<span class="${soon?'contract-soon':''}">${o.kontrakt_tom}</span>`;
+    }
+    const tenant = o.hyresgast ? o.hyresgast : '<span class="tenant-empty">Outhyrt</span>';
+    const badge = o.status==='vakant' ? '<span class="badge vac">Vakant</span>' : '<span class="badge occ">Uthyrd</span>';
+    return `<tr>
+      <td class="obj-id">${o.objekt}</td>
+      <td>${o.typ}</td>
+      <td>${tenant}</td>
+      <td class="num mono">${fmtArea(o.area)}</td>
+      <td class="num mono">${o.krkvm?fmt(o.krkvm):'—'}</td>
+      <td class="num mono">${o.status==='vakant' ? fmt(o.vakanshyra_ar) : fmt(o.hyra_ar)}</td>
+      <td class="num mono">${o.fskatt_ar? fmt(o.fskatt_ar):'—'}</td>
+      <td class="num mono" style="font-weight:600">${fmt(o.status==='vakant'? o.vakanshyra_ar : o.total_ar)}</td>
+      <td>${contractCell}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="10" style="padding:24px;text-align:center;color:var(--muted)">Inga objekt matchar filtret.</td></tr>';
+}
+renderTable();
+
+function setFilter(f){
+  currentFilter = f;
+  document.querySelectorAll('#filterbar .pill-btn').forEach(b=>b.classList.toggle('active', b.dataset.f===f));
+  renderTable();
+}
+document.querySelectorAll('#filterbar .pill-btn').forEach(b=>{
+  b.addEventListener('click', ()=> setFilter(b.dataset.f));
+});
+document.getElementById('search').addEventListener('input', e=>{
+  currentSearch = e.target.value;
+  renderTable();
+});
+
+// ---------- INVOICES ----------
+const invSummary = document.getElementById('inv-summary');
+const totalInv = INVOICES.reduce((s,i)=>s+i.belopp,0);
+const flagged = INVOICES.filter(i=>i.anm);
+const missingObjs = INVOICES.filter(i=>i.anm && i.anm.includes('Saknas'));
+invSummary.innerHTML = `
+  <div class="inv-card"><div class="i-lbl">Antal fakturor</div><div class="i-val">${INVOICES.length} st</div></div>
+  <div class="inv-card"><div class="i-lbl">Fakturerat belopp, Q3</div><div class="i-val">${fmt(totalInv)} kr</div></div>
+  <div class="inv-card"><div class="i-lbl">Med anmärkning</div><div class="i-val" style="color:var(--amber)">${flagged.length} st</div></div>
+  <div class="inv-card"><div class="i-lbl">Ej i rentroll</div><div class="i-val" style="color:var(--wine)">${missingObjs.length} st</div></div>
+`;
+
+// group invoices by hyresgast
+const groups = {};
+INVOICES.forEach(i=>{
+  groups[i.hyresgast] = groups[i.hyresgast] || {fastighet:i.fastighet, objekt:i.objekt, rows:[], total:0, flags:[]};
+  groups[i.hyresgast].rows.push(i);
+  groups[i.hyresgast].total += i.belopp;
+  if(i.anm) groups[i.hyresgast].flags.push(i.anm);
+});
+const invGroupsEl = document.getElementById('inv-groups');
+invGroupsEl.innerHTML = Object.entries(groups).map(([name,g],idx)=>{
+  const missing = g.flags.some(f=>f.includes('Saknas'));
+  const flagHtml = g.flags.length ? g.flags.map(f=>`<span class="flag-pill ${f.includes('Saknas')?'miss':''}">${f}</span>`).join(' ') : '';
+  const rows = g.rows.map(r=>`
+    <div class="tg-row">
+      <div class="fnr">${r.fnr}</div>
+      <div class="per">${r.period}</div>
+      <div class="note">${r.anm||''}</div>
+      <div class="due">förf. ${r.forfallo}</div>
+      <div class="amt">${fmt(r.belopp)} kr</div>
+    </div>`).join('');
+  return `<div class="tenant-group" id="tg-${idx}">
+    <div class="tg-head" onclick="document.getElementById('tg-${idx}').classList.toggle('open')">
+      <div><span class="tg-name">${name}</span><span class="tg-obj">${g.fastighet} · ${g.objekt}</span></div>
+      <div class="tg-right">${flagHtml}<span class="tg-total">${fmt(g.total)} kr</span>
+        <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>
+    <div class="tg-body">${rows}</div>
+  </div>`;
+}).join('');
+
+// ---------- ALERTS (åtgärder) ----------
+function buildAlerts(){
+  const vacant = OBJECTS.filter(o=>o.status==='vakant');
+  const expiring = OBJECTS.filter(o=>o.status==='uthyrd' && o.dagar_kvar!==null && o.dagar_kvar<200).sort((a,b)=>a.dagar_kvar-b.dagar_kvar);
+  const paymentRisk = INVOICES.filter(i=>i.anm && (i.anm.includes('Dröjsmålsränta')||i.anm.includes('Påminnelseavgift')));
+  const unregistered = INVOICES.filter(i=>i.anm && i.anm.includes('Saknas'));
+
+  const cardVacant = `
+    <div class="alert-card">
+      <div class="ac-head"><h4>Vakanta objekt</h4><span class="count-pill wine">${vacant.length} st</span></div>
+      ${vacant.map(o=>`<div class="alert-item"><div class="ai-left"><b>${o.objekt}</b> · ${o.typ}<div class="sub">${o.fastighet} · ${fmtArea(o.area)} kvm</div></div><div class="ai-right">${fmt(o.vakanshyra_ar)} kr/år<br>i förlorat hyresvärde</div></div>`).join('') || '<div class="empty-note">Inga vakanser.</div>'}
+    </div>`;
+  const cardExpiring = `
+    <div class="alert-card">
+      <div class="ac-head"><h4>Kontrakt som löper ut inom ~6 mån</h4><span class="count-pill amber">${expiring.length} st</span></div>
+      ${expiring.map(o=>`<div class="alert-item"><div class="ai-left"><b>${o.hyresgast}</b><div class="sub">${o.objekt} · ${o.fastighet}</div></div><div class="ai-right">${o.kontrakt_tom}<br>(${o.dagar_kvar} dagar)</div></div>`).join('') || '<div class="empty-note">Inga kontrakt inom horisonten.</div>'}
+    </div>`;
+  const cardPayment = `
+    <div class="alert-card">
+      <div class="ac-head"><h4>Betalningsanmärkningar i fakturering</h4><span class="count-pill amber">${paymentRisk.length} st</span></div>
+      ${paymentRisk.map(i=>`<div class="alert-item"><div class="ai-left"><b>${i.hyresgast}</b><div class="sub">Faktura ${i.fnr} · ${i.period}</div></div><div class="ai-right">${i.anm}</div></div>`).join('') || '<div class="empty-note">Inga anmärkningar.</div>'}
+    </div>`;
+  const cardMissing = `
+    <div class="alert-card">
+      <div class="ac-head"><h4>Fakturerade objekt saknas i rentroll</h4><span class="count-pill navy">${unregistered.length} st</span></div>
+      ${unregistered.map(i=>`<div class="alert-item"><div class="ai-left"><b>${i.objekt}</b> · ${i.hyresgast}<div class="sub">${i.fastighet}</div></div><div class="ai-right">Behöver registreras</div></div>`).join('') || '<div class="empty-note">Alla fakturerade objekt är registrerade.</div>'}
+    </div>`;
+  return cardVacant + cardExpiring + cardPayment + cardMissing;
+}
+document.getElementById('full-alerts').innerHTML = buildAlerts();
+// mini version on overview = same 4 cards but condensed (reuse)
+document.getElementById('mini-alerts').innerHTML = buildAlerts();
+
+// ---------- TABS ----------
+function switchView(v){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.view===v));
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+}
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', ()=> switchView(t.dataset.view));
+});
+</script>
+</body>
+</html>

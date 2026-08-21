@@ -1,0 +1,44 @@
+import { useCallback, useEffect, useState } from 'react'
+import { supabase } from '../lib/supabaseClient'
+import type { Fastighet, Faktura, Objekt } from '../types'
+
+export function useFastighetData(id: string | undefined) {
+  const [fastighet, setFastighet] = useState<Fastighet | null>(null)
+  const [objekt, setObjekt] = useState<Objekt[]>([])
+  const [fakturor, setFakturor] = useState<Faktura[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [tick, setTick] = useState(0)
+
+  const reload = useCallback(() => setTick((t) => t + 1), [])
+
+  useEffect(() => {
+    if (!id) return
+    let active = true
+    setLoading(true)
+    setError(null)
+
+    Promise.all([
+      supabase.from('fastigheter').select('*').eq('id', id).maybeSingle(),
+      supabase.from('objekt').select('*').eq('fastighet_id', id).order('objektnummer'),
+      supabase.from('fakturor').select('*').eq('fastighet_id', id).order('forfallodatum'),
+    ]).then(([f, o, i]) => {
+      if (!active) return
+      const err = f.error || o.error || i.error
+      if (err) {
+        setError(err.message)
+      } else {
+        setFastighet(f.data)
+        setObjekt(o.data ?? [])
+        setFakturor(i.data ?? [])
+      }
+      setLoading(false)
+    })
+
+    return () => {
+      active = false
+    }
+  }, [id, tick])
+
+  return { fastighet, objekt, fakturor, loading, error, reload }
+}
