@@ -36,7 +36,7 @@ export function buildForlangningAlerts(objekt: Objekt[], asOf: Date = new Date()
   for (const o of objekt) {
     if (o.status !== 'uthyrd' || !o.kontrakt_tom || o.uppsagning_mottagen) continue
     const frist = addMonths(o.kontrakt_tom, -o.uppsagningstid_manader)
-    const dagarTillFrist = daysBetween(frist, today) * -1
+    const dagarTillFrist = daysBetween(frist, today)
     const post: ForlangningPost = { ...o, uppsagningsfrist: frist, dagarTillFrist }
 
     if (dagarTillFrist < 0) passerade.push(post)
