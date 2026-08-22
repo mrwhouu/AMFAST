@@ -4,6 +4,7 @@ import { fmt, fmtArea } from '../utils/format'
 import { ObjektFormModal } from './ObjektFormModal'
 import { ObjektHistorikModal } from './ObjektHistorikModal'
 import { DrifttillaggPanel } from './DrifttillaggPanel'
+import { DelaObjektModal } from './DelaObjektModal'
 
 const STATUS_BADGE: Record<Objekt['status'], string> = {
   uthyrd: 'bg-green-soft text-green',
@@ -29,6 +30,7 @@ export function ObjectTable({
 }) {
   const [editing, setEditing] = useState<Objekt | null>(null)
   const [historikFor, setHistorikFor] = useState<Objekt | null>(null)
+  const [delningFor, setDelningFor] = useState<Objekt | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
 
   return (
@@ -122,6 +124,14 @@ export function ObjectTable({
                             Redigera
                           </button>
                         )}
+                        {canWrite(o.fastighet_id) && o.status !== 'avslutat' && (
+                          <button
+                            onClick={() => setDelningFor(o)}
+                            className="text-[11.5px] font-semibold text-ink-soft hover:text-navy"
+                          >
+                            Dela
+                          </button>
+                        )}
                       </td>
                     </tr>
                     {isOpen && (
@@ -157,6 +167,17 @@ export function ObjectTable({
       )}
 
       {historikFor && <ObjektHistorikModal objekt={historikFor} onClose={() => setHistorikFor(null)} />}
+
+      {delningFor && (
+        <DelaObjektModal
+          objekt={delningFor}
+          onClose={() => setDelningFor(null)}
+          onSaved={() => {
+            setDelningFor(null)
+            onChanged()
+          }}
+        />
+      )}
     </>
   )
 }

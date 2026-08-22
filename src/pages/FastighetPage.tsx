@@ -14,6 +14,7 @@ import { useAccess } from '../hooks/useAccess'
 import { aggregate } from '../utils/aggregate'
 import { buildAlerts } from '../utils/alerts'
 import { ObjektFormModal } from '../components/ObjektFormModal'
+import { NyHyresgastModal } from '../components/NyHyresgastModal'
 
 const TABS = [
   { key: 'oversikt', label: 'Översikt' },
@@ -28,6 +29,7 @@ export function FastighetPage() {
   const { canWrite } = useAccess()
   const [tab, setTab] = useState('oversikt')
   const [showNew, setShowNew] = useState(false)
+  const [showNyHyresgast, setShowNyHyresgast] = useState(false)
 
   const drifttillaggByObjekt = useMemo(() => {
     const map: Record<string, typeof drifttillagg> = {}
@@ -88,12 +90,18 @@ export function FastighetPage() {
       {tab === 'objekt' && (
         <div>
           {canWrite(fastighet.id) && (
-            <div className="mb-3.5 flex justify-end">
+            <div className="mb-3.5 flex justify-end gap-2">
               <button
                 onClick={() => setShowNew(true)}
+                className="rounded-full border border-line px-4 py-2 text-[12.5px] font-semibold text-ink-soft hover:border-navy"
+              >
+                + Nytt objekt (manuellt)
+              </button>
+              <button
+                onClick={() => setShowNyHyresgast(true)}
                 className="rounded-full bg-navy px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-navy-deep"
               >
-                + Nytt objekt
+                + Lägg till hyresgäst
               </button>
             </div>
           )}
@@ -127,6 +135,17 @@ export function FastighetPage() {
           onClose={() => setShowNew(false)}
           onSaved={() => {
             setShowNew(false)
+            reload()
+          }}
+        />
+      )}
+
+      {showNyHyresgast && (
+        <NyHyresgastModal
+          fastighetId={fastighet.id}
+          onClose={() => setShowNyHyresgast(false)}
+          onSaved={() => {
+            setShowNyHyresgast(false)
             reload()
           }}
         />
