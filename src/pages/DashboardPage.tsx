@@ -11,17 +11,19 @@ import { ObjectTable } from '../components/ObjectTable'
 import { InvSummary } from '../components/InvSummary'
 import { InvoiceGroups } from '../components/InvoiceGroups'
 import { IndexPanel } from '../components/IndexPanel'
+import { AviseringView } from '../components/AviseringView'
 import { usePortfolioData } from '../hooks/usePortfolioData'
 import { useAccess } from '../hooks/useAccess'
 import { aggregate } from '../utils/aggregate'
 import { buildAlerts } from '../utils/alerts'
 
-const TABS = [
+const BAS_TABS = [
   { key: 'oversikt', label: 'Översikt' },
   { key: 'objekt', label: 'Objekt & kontrakt' },
   { key: 'fakturor', label: 'Fakturor' },
   { key: 'atgarder', label: 'Åtgärder' },
 ]
+const AVISERING_TAB = { key: 'avisering', label: 'Avisering' }
 
 export function DashboardPage() {
   const { fastigheter, objekt, fakturor, drifttillagg, loading, error, reload } = usePortfolioData()
@@ -82,6 +84,7 @@ export function DashboardPage() {
 
   const ownerNames = [...new Set(fastigheter.map((f) => f.agare).filter(Boolean))]
   const streetNames = [...new Set(objekt.map((o) => o.gata).filter(Boolean))]
+  const tabs = hasAnyWrite ? [...BAS_TABS, AVISERING_TAB] : BAS_TABS
 
   return (
     <Layout>
@@ -92,7 +95,7 @@ export function DashboardPage() {
         agg={totalAgg}
       />
 
-      <Tabs tabs={TABS} active={tab} onChange={setTab} />
+      <Tabs tabs={tabs} active={tab} onChange={setTab} />
 
       {tab === 'oversikt' && (
         <div>
@@ -145,6 +148,16 @@ export function DashboardPage() {
       )}
 
       {tab === 'atgarder' && <AlertGrid data={alerts} canWrite={canWrite} onChanged={reload} />}
+
+      {tab === 'avisering' && hasAnyWrite && (
+        <AviseringView
+          objekt={objekt}
+          drifttillaggSummaByObjekt={drifttillaggSummaByObjekt}
+          fastighetNamnById={fastighetNamnById}
+          canWrite={canWrite}
+          onCreated={reload}
+        />
+      )}
     </Layout>
   )
 }
