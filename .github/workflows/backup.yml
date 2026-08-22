@@ -1,0 +1,39 @@
+name: Databasbackup
+
+# Kör en fullständig SQL-dump av Supabase-databasen och sparar den som ett
+# nedladdningsbart workflow-artefakt. Ersätter inte Supabase Pro-planens
+# Point-in-Time Recovery, men ger en gratis, oberoende säkerhetskopia.
+#
+# Kräver en repo-secret DATABASE_URL — anslutningssträngen från
+# Supabase (Project Settings → Database → Connection string → URI,
+# "Session pooler" eller direktanslutning). Lägg till den under
+# Settings → Secrets and variables → Actions i GitHub-repot.
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # varje natt kl 03:00 UTC
+  workflow_dispatch: {} # gör det även möjligt att köra manuellt
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Installera postgresql-client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Dumpa databasen
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL-secreten saknas — se instruktioner i workflow-filen." >&2
+            exit 1
+          fi
+          pg_dump "$DATABASE_URL" --no-owner --no-privileges -f backup.sql
+
+      - name: Ladda upp som artefakt
+        uses: actions/upload-artifact@v4
+        with:
+          name: amfast-backup-${{ github.run_id }}
+          path: backup.sql
+          retention-days: 30
