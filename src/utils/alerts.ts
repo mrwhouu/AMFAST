@@ -1,10 +1,13 @@
 import { dagarKvar, type Faktura, type Objekt } from '../types'
+import { buildForlangningAlerts, type ForlangningPost } from './forlangning'
 
 export interface AlertsData {
   vacant: Objekt[]
   expiring: (Objekt & { dagarKvar: number })[]
   paymentRisk: Faktura[]
   unregistered: Faktura[]
+  forlangningPasserad: ForlangningPost[]
+  forlangningKommande: ForlangningPost[]
 }
 
 export function buildAlerts(objekt: Objekt[], fakturor: Faktura[]): AlertsData {
@@ -25,5 +28,7 @@ export function buildAlerts(objekt: Objekt[], fakturor: Faktura[]): AlertsData {
 
   const unregistered = fakturor.filter((i) => i.anmarkning?.includes('Saknas') || !i.objekt_id)
 
-  return { vacant, expiring, paymentRisk, unregistered }
+  const { passerade: forlangningPasserad, kommande: forlangningKommande } = buildForlangningAlerts(objekt)
+
+  return { vacant, expiring, paymentRisk, unregistered, forlangningPasserad, forlangningKommande }
 }

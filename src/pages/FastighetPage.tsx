@@ -83,7 +83,7 @@ export function FastighetPage() {
       {tab === 'oversikt' && (
         <div>
           <SectionLabel>Kräver uppmärksamhet</SectionLabel>
-          <AlertGrid data={alerts} />
+          <AlertGrid data={alerts} canWrite={canWrite} onChanged={reload} />
         </div>
       )}
 
@@ -127,7 +127,7 @@ export function FastighetPage() {
         </div>
       )}
 
-      {tab === 'atgarder' && <AlertGrid data={alerts} />}
+      {tab === 'atgarder' && <AlertGrid data={alerts} canWrite={canWrite} onChanged={reload} />}
 
       {showNew && (
         <ObjektFormModal

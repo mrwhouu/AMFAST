@@ -25,5 +25,7 @@ export function useAccess() {
     return writeIds.has(fastighetId)
   }
 
-  return { canWrite, isAdmin: profile?.role === 'admin' }
+  const hasAnyWrite = profile?.role === 'admin' || (profile?.role === 'forvaltare' && writeIds.size > 0)
+
+  return { canWrite, isAdmin: profile?.role === 'admin', hasAnyWrite }
 }

@@ -10,6 +10,7 @@ import { FilterBar } from '../components/FilterBar'
 import { ObjectTable } from '../components/ObjectTable'
 import { InvSummary } from '../components/InvSummary'
 import { InvoiceGroups } from '../components/InvoiceGroups'
+import { IndexPanel } from '../components/IndexPanel'
 import { usePortfolioData } from '../hooks/usePortfolioData'
 import { useAccess } from '../hooks/useAccess'
 import { aggregate } from '../utils/aggregate'
@@ -24,7 +25,7 @@ const TABS = [
 
 export function DashboardPage() {
   const { fastigheter, objekt, fakturor, drifttillagg, loading, error, reload } = usePortfolioData()
-  const { canWrite } = useAccess()
+  const { canWrite, hasAnyWrite } = useAccess()
   const [tab, setTab] = useState('oversikt')
   const [filter, setFilter] = useState('alla')
   const [search, setSearch] = useState('')
@@ -107,12 +108,13 @@ export function DashboardPage() {
             ))}
           </div>
           <SectionLabel>Kräver uppmärksamhet</SectionLabel>
-          <AlertGrid data={alerts} />
+          <AlertGrid data={alerts} canWrite={canWrite} onChanged={reload} />
         </div>
       )}
 
       {tab === 'objekt' && (
         <div>
+          {hasAnyWrite && <IndexPanel objekt={objekt} onApplied={reload} />}
           <FilterBar
             fastigheter={fastigheter}
             active={filter}
@@ -142,7 +144,7 @@ export function DashboardPage() {
         </div>
       )}
 
-      {tab === 'atgarder' && <AlertGrid data={alerts} />}
+      {tab === 'atgarder' && <AlertGrid data={alerts} canWrite={canWrite} onChanged={reload} />}
     </Layout>
   )
 }
