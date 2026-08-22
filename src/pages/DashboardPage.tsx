@@ -23,7 +23,7 @@ const TABS = [
 ]
 
 export function DashboardPage() {
-  const { fastigheter, objekt, fakturor, loading, error, reload } = usePortfolioData()
+  const { fastigheter, objekt, fakturor, drifttillagg, loading, error, reload } = usePortfolioData()
   const { canWrite } = useAccess()
   const [tab, setTab] = useState('oversikt')
   const [filter, setFilter] = useState('alla')
@@ -41,7 +41,19 @@ export function DashboardPage() {
     [fastigheter],
   )
 
-  const totalAgg = useMemo(() => aggregate(objekt), [objekt])
+  const drifttillaggByObjekt = useMemo(() => {
+    const map: Record<string, typeof drifttillagg> = {}
+    for (const d of drifttillagg) (map[d.objekt_id] ??= []).push(d)
+    return map
+  }, [drifttillagg])
+
+  const drifttillaggSummaByObjekt = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const d of drifttillagg) map[d.objekt_id] = (map[d.objekt_id] ?? 0) + d.belopp_ar
+    return map
+  }, [drifttillagg])
+
+  const totalAgg = useMemo(() => aggregate(objekt, drifttillaggSummaByObjekt), [objekt, drifttillaggSummaByObjekt])
   const alerts = useMemo(() => buildAlerts(objekt, fakturor), [objekt, fakturor])
 
   const filteredObjekt = useMemo(() => {
@@ -85,7 +97,13 @@ export function DashboardPage() {
         <div>
           <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {fastigheter.map((f, i) => (
-              <PropertyCard key={f.id} fastighet={f} objekt={objektByFastighet.get(f.id) ?? []} colorIndex={i} />
+              <PropertyCard
+                key={f.id}
+                fastighet={f}
+                objekt={objektByFastighet.get(f.id) ?? []}
+                drifttillaggSummaByObjekt={drifttillaggSummaByObjekt}
+                colorIndex={i}
+              />
             ))}
           </div>
           <SectionLabel>Kräver uppmärksamhet</SectionLabel>
@@ -102,7 +120,12 @@ export function DashboardPage() {
             search={search}
             onSearch={setSearch}
           />
-          <ObjectTable objekt={filteredObjekt} canWrite={canWrite} onChanged={reload} />
+          <ObjectTable
+            objekt={filteredObjekt}
+            drifttillaggByObjekt={drifttillaggByObjekt}
+            canWrite={canWrite}
+            onChanged={reload}
+          />
         </div>
       )}
 
@@ -110,7 +133,12 @@ export function DashboardPage() {
         <div>
           <InvSummary fakturor={fakturor} />
           <SectionLabel>Per hyresgäst</SectionLabel>
-          <InvoiceGroups fakturor={fakturor} fastighetNamnById={fastighetNamnById} />
+          <InvoiceGroups
+            fakturor={fakturor}
+            fastighetNamnById={fastighetNamnById}
+            canWrite={canWrite}
+            onChanged={reload}
+          />
         </div>
       )}
 

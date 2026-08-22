@@ -24,12 +24,24 @@ const TABS = [
 
 export function FastighetPage() {
   const { id } = useParams<{ id: string }>()
-  const { fastighet, objekt, fakturor, loading, error, reload } = useFastighetData(id)
+  const { fastighet, objekt, fakturor, drifttillagg, loading, error, reload } = useFastighetData(id)
   const { canWrite } = useAccess()
   const [tab, setTab] = useState('oversikt')
   const [showNew, setShowNew] = useState(false)
 
-  const agg = useMemo(() => aggregate(objekt), [objekt])
+  const drifttillaggByObjekt = useMemo(() => {
+    const map: Record<string, typeof drifttillagg> = {}
+    for (const d of drifttillagg) (map[d.objekt_id] ??= []).push(d)
+    return map
+  }, [drifttillagg])
+
+  const drifttillaggSummaByObjekt = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const d of drifttillagg) map[d.objekt_id] = (map[d.objekt_id] ?? 0) + d.belopp_ar
+    return map
+  }, [drifttillagg])
+
+  const agg = useMemo(() => aggregate(objekt, drifttillaggSummaByObjekt), [objekt, drifttillaggSummaByObjekt])
   const alerts = useMemo(() => buildAlerts(objekt, fakturor), [objekt, fakturor])
   const fastighetNamnById = useMemo(
     () => (fastighet ? { [fastighet.id]: fastighet.namn } : {}),
@@ -85,7 +97,12 @@ export function FastighetPage() {
               </button>
             </div>
           )}
-          <ObjectTable objekt={objekt} canWrite={canWrite} onChanged={reload} />
+          <ObjectTable
+            objekt={objekt}
+            drifttillaggByObjekt={drifttillaggByObjekt}
+            canWrite={canWrite}
+            onChanged={reload}
+          />
         </div>
       )}
 
@@ -93,7 +110,12 @@ export function FastighetPage() {
         <div>
           <InvSummary fakturor={fakturor} />
           <SectionLabel>Per hyresgäst</SectionLabel>
-          <InvoiceGroups fakturor={fakturor} fastighetNamnById={fastighetNamnById} />
+          <InvoiceGroups
+            fakturor={fakturor}
+            fastighetNamnById={fastighetNamnById}
+            canWrite={canWrite}
+            onChanged={reload}
+          />
         </div>
       )}
 

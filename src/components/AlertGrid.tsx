@@ -104,7 +104,7 @@ export function AlertGrid({ data }: { data: AlertsData }) {
             key={i.id}
             left={<b className="font-semibold">{i.hyresgast}</b>}
             sub={`Faktura ${i.fakturanummer} · ${i.period}`}
-            right={i.anmarkning}
+            right={i.anmarkning ?? (i.status === 'inkasso' ? 'Inkasso' : 'Försenad')}
           />
         ))}
       </AlertCard>

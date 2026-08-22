@@ -9,27 +9,30 @@ const PROP_COLORS = ['#1F3A5F', '#A6812E', '#2E7D5B', '#8E2A3B', '#B4711E']
 export function PropertyCard({
   fastighet,
   objekt,
+  drifttillaggSummaByObjekt = {},
   colorIndex,
 }: {
   fastighet: Fastighet
   objekt: Objekt[]
+  drifttillaggSummaByObjekt?: Record<string, number>
   colorIndex: number
 }) {
-  const agg = aggregate(objekt)
+  const active = objekt.filter((o) => o.status !== 'avslutat')
+  const agg = aggregate(objekt, drifttillaggSummaByObjekt)
   const color = PROP_COLORS[colorIndex % PROP_COLORS.length]
   const belPct = agg.areaTot > 0 ? Math.round(((agg.areaTot - agg.areaVac) / agg.areaTot) * 100) : 0
-  const streets = [...new Set(objekt.map((o) => o.gata).filter(Boolean))].join(' · ')
+  const streets = [...new Set(active.map((o) => o.gata).filter(Boolean))].join(' · ')
 
   return (
     <div className="rounded-card border border-line bg-surface px-5 pb-4 pt-[18px] shadow-card">
       <div className="mb-0.5 flex items-baseline justify-between">
         <h3 className="m-0 font-display text-[19px] font-semibold">{fastighet.namn}</h3>
-        <span className="font-mono text-[11px] text-muted">{objekt.length} objekt</span>
+        <span className="font-mono text-[11px] text-muted">{active.length} objekt</span>
       </div>
       <div className="mb-3.5 text-[11.5px] text-muted">{fastighet.agare}</div>
       {streets && <div className="-mt-2.5 mb-3.5 text-xs text-muted">{streets}</div>}
 
-      <OccupancyRibbon objekt={objekt} areaTot={agg.areaTot} color={color} />
+      <OccupancyRibbon objekt={active} areaTot={agg.areaTot} color={color} />
       <div className="mt-[7px] flex justify-between font-mono text-[11px] text-muted">
         <span>{belPct}% uthyrt</span>
         <span>{fmtArea(agg.areaTot)} kvm totalt</span>

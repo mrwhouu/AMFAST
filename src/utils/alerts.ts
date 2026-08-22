@@ -17,7 +17,10 @@ export function buildAlerts(objekt: Objekt[], fakturor: Faktura[]): AlertsData {
     .sort((a, b) => a.dagarKvar - b.dagarKvar)
 
   const paymentRisk = fakturor.filter(
-    (i) => i.anmarkning && (i.anmarkning.includes('Dröjsmålsränta') || i.anmarkning.includes('Påminnelseavgift')),
+    (i) =>
+      i.status === 'forsenad' ||
+      i.status === 'inkasso' ||
+      (i.anmarkning && (i.anmarkning.includes('Dröjsmålsränta') || i.anmarkning.includes('Påminnelseavgift'))),
   )
 
   const unregistered = fakturor.filter((i) => i.anmarkning?.includes('Saknas') || !i.objekt_id)
