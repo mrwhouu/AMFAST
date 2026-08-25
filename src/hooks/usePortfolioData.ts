@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { sleep } from '../utils/sleep'
 import type { Fastighet, Faktura, Objekt, ObjektDrifttillagg } from '../types'
 
 export interface PortfolioData {
@@ -12,10 +13,17 @@ export interface PortfolioData {
   reload: () => void
 }
 
+const FORSOK = 3
+const FORSOK_FORDROJNING_MS = 900
+
 /**
  * Hämtar fastigheter/objekt/fakturor/drifttillägg. RLS-policyerna i Supabase
  * begränsar redan svaret till de fastigheter den inloggade användaren har
  * åtkomst till, så ingen ytterligare filtrering behövs här.
+ *
+ * Övergående fel (t.ex. "JWT issued at future" som kan hända ett kort
+ * ögonblick efter inloggning) försöks tyst igen ett par gånger innan ett
+ * fel visas för användaren.
  */
 export function usePortfolioData(): PortfolioData {
   const [fastigheter, setFastigheter] = useState<Fastighet[]>([])
@@ -33,13 +41,22 @@ export function usePortfolioData(): PortfolioData {
     setLoading(true)
     setError(null)
 
-    Promise.all([
-      supabase.from('fastigheter').select('*').order('namn'),
-      supabase.from('objekt').select('*').order('objektnummer'),
-      supabase.from('fakturor').select('*').order('forfallodatum'),
-      supabase.from('objekt_drifttillagg').select('*'),
-    ]).then(([f, o, i, d]) => {
-      if (!active) return
+    async function run() {
+      let result
+      for (let forsok = 1; forsok <= FORSOK; forsok++) {
+        result = await Promise.all([
+          supabase.from('fastigheter').select('*').order('namn'),
+          supabase.from('objekt').select('*').order('objektnummer'),
+          supabase.from('fakturor').select('*').order('forfallodatum'),
+          supabase.from('objekt_drifttillagg').select('*'),
+        ])
+        const err = result[0].error || result[1].error || result[2].error || result[3].error
+        if (!err) break
+        if (forsok < FORSOK) await sleep(FORSOK_FORDROJNING_MS * forsok)
+      }
+      if (!active || !result) return
+
+      const [f, o, i, d] = result
       const err = f.error || o.error || i.error || d.error
       if (err) {
         setError(err.message)
@@ -50,7 +67,9 @@ export function usePortfolioData(): PortfolioData {
         setDrifttillagg(d.data ?? [])
       }
       setLoading(false)
-    })
+    }
+
+    run()
 
     return () => {
       active = false
