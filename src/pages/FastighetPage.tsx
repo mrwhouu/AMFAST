@@ -54,8 +54,16 @@ export function FastighetPage() {
   if (error || !fastighet)
     return (
       <Layout>
-        <div className="mt-10 rounded-card border border-wine-soft bg-wine-soft px-5 py-4 text-wine">
-          {error ?? 'Fastigheten hittades inte, eller så saknar du åtkomst.'}
+        <div className="mt-10 flex items-center justify-between gap-4 rounded-card border border-wine-soft bg-wine-soft px-5 py-4 text-wine">
+          <span>{error ?? 'Fastigheten hittades inte, eller så saknar du åtkomst.'}</span>
+          {error && (
+            <button
+              onClick={reload}
+              className="whitespace-nowrap rounded-full border border-wine px-4 py-1.5 text-[12.5px] font-semibold hover:bg-wine hover:text-white"
+            >
+              Försök igen
+            </button>
+          )}
         </div>
         <Link to="/" className="mt-4 inline-block text-sm font-semibold text-navy">
           ← Till portföljöversikt

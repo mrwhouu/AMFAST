@@ -76,8 +76,14 @@ export function DashboardPage() {
   if (error)
     return (
       <Layout>
-        <div className="mt-10 rounded-card border border-wine-soft bg-wine-soft px-5 py-4 text-wine">
-          Kunde inte hämta data: {error}
+        <div className="mt-10 flex items-center justify-between gap-4 rounded-card border border-wine-soft bg-wine-soft px-5 py-4 text-wine">
+          <span>Kunde inte hämta data: {error}</span>
+          <button
+            onClick={reload}
+            className="whitespace-nowrap rounded-full border border-wine px-4 py-1.5 text-[12.5px] font-semibold hover:bg-wine hover:text-white"
+          >
+            Försök igen
+          </button>
         </div>
       </Layout>
     )
