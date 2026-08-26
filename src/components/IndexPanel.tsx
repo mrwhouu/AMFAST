@@ -20,6 +20,15 @@ export function IndexPanel({ objekt, onApplied }: { objekt: Objekt[]; onApplied:
     [objekt],
   )
 
+  const kvartalsObjekt = useMemo(
+    () => objekt.filter((o) => o.upprakningsmodell === 'fast_procent_kvartal' && o.status === 'uthyrd'),
+    [objekt],
+  )
+  const nu = new Date()
+  const [kvartalsAr, setKvartalsAr] = useState(String(nu.getFullYear()))
+  const [kvartal, setKvartal] = useState(String(Math.floor(nu.getMonth() / 3) + 1))
+  const [applyingKvartal, setApplyingKvartal] = useState(false)
+
   const previewProcent = previewAr != null ? serier.find((s) => s.ar === previewAr)?.procent : undefined
 
   async function addSerie(e: FormEvent) {
@@ -55,6 +64,26 @@ export function IndexPanel({ objekt, onApplied }: { objekt: Objekt[]; onApplied:
       return
     }
     setPreviewAr(null)
+    onApplied()
+  }
+
+  async function applicerakvartal() {
+    if (
+      !confirm(
+        `Applicera kvartalsvis minimiökning för Q${kvartal} ${kvartalsAr} på ${kvartalsObjekt.length} objekt?`,
+      )
+    )
+      return
+    setApplyingKvartal(true)
+    const { error } = await supabase.rpc('applicera_kvartals_minimiokning', {
+      p_ar: Number(kvartalsAr),
+      p_kvartal: Number(kvartal),
+    })
+    setApplyingKvartal(false)
+    if (error) {
+      alert(error.message)
+      return
+    }
     onApplied()
   }
 
@@ -185,6 +214,66 @@ export function IndexPanel({ objekt, onApplied }: { objekt: Objekt[]; onApplied:
               </div>
             </div>
           )}
+
+          <div className="mt-5 border-t border-line-soft pt-4">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+                Kvartalsvis fast minimiökning
+              </span>
+              <span className="font-mono text-[11px] text-muted">
+                {kvartalsObjekt.length} objekt med uppräkningsmodell fast_procent_kvartal
+              </span>
+            </div>
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  År
+                </span>
+                <input
+                  type="number"
+                  value={kvartalsAr}
+                  onChange={(e) => setKvartalsAr(e.target.value)}
+                  className="input !w-20"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  Kvartal
+                </span>
+                <select value={kvartal} onChange={(e) => setKvartal(e.target.value)} className="input !w-20">
+                  <option value="1">Q1</option>
+                  <option value="2">Q2</option>
+                  <option value="3">Q3</option>
+                  <option value="4">Q4</option>
+                </select>
+              </label>
+              <button
+                onClick={applicerakvartal}
+                disabled={applyingKvartal || kvartalsObjekt.length === 0}
+                className="rounded-lg bg-navy px-3 py-2 text-[12.5px] font-semibold text-white hover:bg-navy-deep disabled:opacity-60"
+              >
+                {applyingKvartal ? 'Applicerar…' : 'Applicera minimiökning'}
+              </button>
+            </div>
+            {kvartalsObjekt.length > 0 && (
+              <div className="mt-3 space-y-1">
+                {kvartalsObjekt.map((o) => {
+                  const p = o.fast_procent_kvartal ?? 0.5
+                  const ny = Math.round(o.hyra_ar * (1 + p / 100))
+                  return (
+                    <div key={o.id} className="flex justify-between text-[12px]">
+                      <span>
+                        {o.objektnummer} · {o.hyresgast} ({p}%/kvartal)
+                      </span>
+                      <span className="font-mono">
+                        {fmt(o.hyra_ar)} → <span className="font-semibold">{fmt(ny)}</span> kr/år
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

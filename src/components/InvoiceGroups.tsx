@@ -84,6 +84,30 @@ export function InvoiceGroups({
     onChanged()
   }
 
+  async function markBetald(fakturaId: string) {
+    if (!confirm('Markera denna faktura som betald?')) return
+    setMarking(fakturaId)
+    const { error } = await supabase.rpc('markera_faktura_betald', { p_faktura_id: fakturaId })
+    setMarking(null)
+    if (error) {
+      alert(error.message)
+      return
+    }
+    onChanged()
+  }
+
+  async function skickaPaminnelse(fakturaId: string) {
+    if (!confirm('Skicka en påminnelse för denna faktura? En ny påminnelsefaktura (60 kr, 14 dagars förfallotid) skapas.')) return
+    setMarking(fakturaId)
+    const { error } = await supabase.rpc('skicka_paminnelse', { p_faktura_id: fakturaId })
+    setMarking(null)
+    if (error) {
+      alert(error.message)
+      return
+    }
+    onChanged()
+  }
+
   return (
     <div>
       {groups.map((g) => {
@@ -147,13 +171,31 @@ export function InvoiceGroups({
                         {r.inkasso_datum && <span>Inkasso {r.inkasso_datum}</span>}
                       </div>
                       {canWrite(r.fastighet_id) && r.status !== 'inkasso' && r.status !== 'betald' && (
-                        <button
-                          onClick={() => markInkasso(r.id)}
-                          disabled={marking === r.id}
-                          className="text-[11px] font-semibold text-wine hover:text-wine/70 disabled:opacity-60"
-                        >
-                          Markera som skickad till inkasso
-                        </button>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <button
+                            onClick={() => markBetald(r.id)}
+                            disabled={marking === r.id}
+                            className="text-[11px] font-semibold text-green hover:text-green/70 disabled:opacity-60"
+                          >
+                            Markera som betald
+                          </button>
+                          {r.typ === 'faktura' && (
+                            <button
+                              onClick={() => skickaPaminnelse(r.id)}
+                              disabled={marking === r.id}
+                              className="text-[11px] font-semibold text-amber hover:text-amber/70 disabled:opacity-60"
+                            >
+                              Skicka påminnelse
+                            </button>
+                          )}
+                          <button
+                            onClick={() => markInkasso(r.id)}
+                            disabled={marking === r.id}
+                            className="text-[11px] font-semibold text-wine hover:text-wine/70 disabled:opacity-60"
+                          >
+                            Markera som skickad till inkasso
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
