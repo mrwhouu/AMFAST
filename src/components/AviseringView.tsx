@@ -79,20 +79,40 @@ export function AviseringView({
 
     for (const r of attSkicka) {
       const fakturanummer = `${r.objekt.objektnummer}-${periodLabel}`
-      const { error } = await supabase.from('fakturor').insert({
-        fastighet_id: r.objekt.fastighet_id,
+      const belopp = Number(r.belopp) || 0
+      const { data, error } = await supabase
+        .from('fakturor')
+        .insert({
+          fastighet_id: r.objekt.fastighet_id,
+          objekt_id: r.objekt.id,
+          objektnummer: r.objekt.objektnummer,
+          hyresgast: r.objekt.hyresgast,
+          fakturanummer,
+          period: periodLabel,
+          forfallodatum: r.forfallodatum,
+          belopp,
+          anmarkning: r.anmarkning || null,
+          status: 'skickad',
+          skickad_datum: toIsoDate(new Date()),
+        })
+        .select()
+        .single()
+
+      if (error || !data) {
+        fel.push(`${r.objekt.objektnummer} (${r.objekt.hyresgast}): ${error?.message ?? 'okänt fel'}`)
+        continue
+      }
+
+      const { error: radError } = await supabase.from('faktura_rader').insert({
+        faktura_id: data.id,
         objekt_id: r.objekt.id,
-        objektnummer: r.objekt.objektnummer,
-        hyresgast: r.objekt.hyresgast,
-        fakturanummer,
-        period: periodLabel,
-        forfallodatum: r.forfallodatum,
-        belopp: Number(r.belopp) || 0,
-        anmarkning: r.anmarkning || null,
-        status: 'skickad',
-        skickad_datum: toIsoDate(new Date()),
+        beskrivning: `Hyra ${periodRange(ar, typ, varde).label}`,
+        antal: 1,
+        a_pris: belopp,
+        belopp,
+        typ: 'hyra',
       })
-      if (error) fel.push(`${r.objekt.objektnummer} (${r.objekt.hyresgast}): ${error.message}`)
+      if (radError) fel.push(`${r.objekt.objektnummer} (${r.objekt.hyresgast}): faktura skapad men rad misslyckades — ${radError.message}`)
       else ok++
     }
 
