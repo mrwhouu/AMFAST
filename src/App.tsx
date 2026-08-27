@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { FastighetPage } from './pages/FastighetPage'
 import { AdminPage } from './pages/AdminPage'
+import { FakturaPrintPage } from './pages/FakturaPrintPage'
 
 export default function App() {
   if (!isSupabaseConfigured) return <ConfigMissing />
@@ -28,6 +29,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <FastighetPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/faktura/:id"
+          element={
+            <ProtectedRoute>
+              <FakturaPrintPage />
             </ProtectedRoute>
           }
         />

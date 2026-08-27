@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import type { Faktura, FakturaStatus } from '../types'
 import { fmt } from '../utils/format'
@@ -157,7 +158,11 @@ export function InvoiceGroups({
                 {g.rows.map((r) => (
                   <div key={r.id} className="border-t border-line-soft px-[18px] py-2.5 text-[12.5px]">
                     <div className="grid grid-cols-[90px_90px_1fr_110px_90px] items-center gap-2.5">
-                      <div className="font-mono font-semibold text-navy">{r.fakturanummer}</div>
+                      <div className="font-mono font-semibold text-navy">
+                        <Link to={`/faktura/${r.id}`} className="hover:text-gold hover:underline" title="Visa/skriv ut faktura">
+                          {r.fakturanummer}
+                        </Link>
+                      </div>
                       <div className="font-mono text-muted">{r.period}</div>
                       <div className="text-[11.5px] text-amber">{r.anmarkning ?? ''}</div>
                       <div className="text-right font-mono text-muted">förf. {r.forfallodatum}</div>
