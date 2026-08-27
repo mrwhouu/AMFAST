@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import type { Objekt, ObjektStatus } from '../types'
+import type { Faktureringsintervall, Objekt, ObjektStatus, Upprakningsmodell } from '../types'
 
 type FormValues = {
   objektnummer: string
@@ -16,6 +16,16 @@ type FormValues = {
   kontrakt_fran: string
   kontrakt_tom: string
   gata: string
+  uppsagningstid_manader: string
+  forlangning_manader: string
+  uppsagning_mottagen: boolean
+  uppsagning_datum: string
+  indexklausul: boolean
+  bas_hyra_ar: string
+  momsat: boolean
+  faktureringsintervall: Faktureringsintervall
+  upprakningsmodell: Upprakningsmodell | ''
+  fast_procent_kvartal: string
 }
 
 function toValues(o?: Objekt | null): FormValues {
@@ -33,6 +43,16 @@ function toValues(o?: Objekt | null): FormValues {
     kontrakt_fran: o?.kontrakt_fran ?? '',
     kontrakt_tom: o?.kontrakt_tom ?? '',
     gata: o?.gata ?? '',
+    uppsagningstid_manader: o ? String(o.uppsagningstid_manader) : '9',
+    forlangning_manader: o ? String(o.forlangning_manader) : '36',
+    uppsagning_mottagen: o?.uppsagning_mottagen ?? false,
+    uppsagning_datum: o?.uppsagning_datum ?? '',
+    indexklausul: o?.indexklausul ?? false,
+    bas_hyra_ar: o?.bas_hyra_ar != null ? String(o.bas_hyra_ar) : '',
+    momsat: o?.momsat ?? false,
+    faktureringsintervall: o?.faktureringsintervall ?? 'kvartalsvis',
+    upprakningsmodell: o?.upprakningsmodell ?? '',
+    fast_procent_kvartal: o?.fast_procent_kvartal != null ? String(o.fast_procent_kvartal) : '0.5',
   }
 }
 
@@ -75,6 +95,19 @@ export function ObjektFormModal({
       kontrakt_fran: values.kontrakt_fran || null,
       kontrakt_tom: values.kontrakt_tom || null,
       gata: values.gata || null,
+      uppsagningstid_manader: Number(values.uppsagningstid_manader) || 9,
+      forlangning_manader: Number(values.forlangning_manader) || 36,
+      uppsagning_mottagen: values.uppsagning_mottagen,
+      uppsagning_datum: values.uppsagning_mottagen ? values.uppsagning_datum || null : null,
+      indexklausul: values.indexklausul,
+      bas_hyra_ar: values.indexklausul ? Number(values.bas_hyra_ar) || Number(values.hyra_ar) || 0 : null,
+      momsat: values.momsat,
+      faktureringsintervall: values.faktureringsintervall,
+      upprakningsmodell: values.indexklausul && values.upprakningsmodell ? values.upprakningsmodell : null,
+      fast_procent_kvartal:
+        values.indexklausul && values.upprakningsmodell === 'fast_procent_kvartal'
+          ? Number(values.fast_procent_kvartal) || 0.5
+          : null,
     }
 
     const { error } = objekt
@@ -199,6 +232,105 @@ export function ObjektFormModal({
               className="input"
             />
           </Field>
+          <Field label="Uppsägningstid (mån)">
+            <input
+              type="number"
+              value={values.uppsagningstid_manader}
+              onChange={(e) => set('uppsagningstid_manader', e.target.value)}
+              className="input"
+            />
+          </Field>
+          <Field label="Förlängning (mån)">
+            <input
+              type="number"
+              value={values.forlangning_manader}
+              onChange={(e) => set('forlangning_manader', e.target.value)}
+              className="input"
+            />
+          </Field>
+          <Field label="Uppsägning mottagen">
+            <label className="flex h-[38px] items-center gap-2 text-[12.5px] text-ink-soft">
+              <input
+                type="checkbox"
+                checked={values.uppsagning_mottagen}
+                onChange={(e) => set('uppsagning_mottagen', e.target.checked)}
+              />
+              Ja, uppsägning mottagen
+            </label>
+          </Field>
+          {values.uppsagning_mottagen && (
+            <Field label="Uppsägningsdatum">
+              <input
+                type="date"
+                value={values.uppsagning_datum}
+                onChange={(e) => set('uppsagning_datum', e.target.value)}
+                className="input"
+              />
+            </Field>
+          )}
+          <Field label="Moms">
+            <label className="flex h-[38px] items-center gap-2 text-[12.5px] text-ink-soft">
+              <input type="checkbox" checked={values.momsat} onChange={(e) => set('momsat', e.target.checked)} />
+              Momspliktig hyra (25%)
+            </label>
+          </Field>
+          <Field label="Faktureringsintervall">
+            <select
+              value={values.faktureringsintervall}
+              onChange={(e) => set('faktureringsintervall', e.target.value as Faktureringsintervall)}
+              className="input"
+            >
+              <option value="manadsvis">Månadsvis</option>
+              <option value="kvartalsvis">Kvartalsvis</option>
+            </select>
+          </Field>
+          <Field label="Indexklausul">
+            <label className="flex h-[38px] items-center gap-2 text-[12.5px] text-ink-soft">
+              <input
+                type="checkbox"
+                checked={values.indexklausul}
+                onChange={(e) => set('indexklausul', e.target.checked)}
+              />
+              Räknas upp enligt index
+            </label>
+          </Field>
+          {values.indexklausul && (
+            <>
+              <Field label="Bashyra/år (innan index)">
+                <input
+                  type="number"
+                  value={values.bas_hyra_ar}
+                  onChange={(e) => set('bas_hyra_ar', e.target.value)}
+                  className="input"
+                  placeholder={values.hyra_ar}
+                />
+              </Field>
+              <Field label="Uppräkningsmodell">
+                <select
+                  value={values.upprakningsmodell}
+                  onChange={(e) => set('upprakningsmodell', e.target.value as Upprakningsmodell)}
+                  className="input"
+                >
+                  <option value="">Ej vald</option>
+                  <option value="kpi">KPI (årlig, applicera_index)</option>
+                  <option value="fast_procent">Fast procent (årlig)</option>
+                  <option value="fast_belopp">Fast belopp (årlig)</option>
+                  <option value="fast_procent_kvartal">Fast minimiökning per kvartal</option>
+                </select>
+              </Field>
+              {values.upprakningsmodell === 'fast_procent_kvartal' && (
+                <Field label="Procent/kvartal">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={values.fast_procent_kvartal}
+                    onChange={(e) => set('fast_procent_kvartal', e.target.value)}
+                    className="input"
+                  />
+                </Field>
+              )}
+            </>
+          )}
         </div>
 
         {error && (

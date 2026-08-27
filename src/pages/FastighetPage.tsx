@@ -14,6 +14,7 @@ import { useAccess } from '../hooks/useAccess'
 import { aggregate } from '../utils/aggregate'
 import { buildAlerts } from '../utils/alerts'
 import { ObjektFormModal } from '../components/ObjektFormModal'
+import { NyHyresgastModal } from '../components/NyHyresgastModal'
 
 const TABS = [
   { key: 'oversikt', label: 'Översikt' },
@@ -24,12 +25,25 @@ const TABS = [
 
 export function FastighetPage() {
   const { id } = useParams<{ id: string }>()
-  const { fastighet, objekt, fakturor, loading, error, reload } = useFastighetData(id)
+  const { fastighet, objekt, fakturor, drifttillagg, loading, error, reload } = useFastighetData(id)
   const { canWrite } = useAccess()
   const [tab, setTab] = useState('oversikt')
   const [showNew, setShowNew] = useState(false)
+  const [showNyHyresgast, setShowNyHyresgast] = useState(false)
 
-  const agg = useMemo(() => aggregate(objekt), [objekt])
+  const drifttillaggByObjekt = useMemo(() => {
+    const map: Record<string, typeof drifttillagg> = {}
+    for (const d of drifttillagg) (map[d.objekt_id] ??= []).push(d)
+    return map
+  }, [drifttillagg])
+
+  const drifttillaggSummaByObjekt = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const d of drifttillagg) map[d.objekt_id] = (map[d.objekt_id] ?? 0) + d.belopp_ar
+    return map
+  }, [drifttillagg])
+
+  const agg = useMemo(() => aggregate(objekt, drifttillaggSummaByObjekt), [objekt, drifttillaggSummaByObjekt])
   const alerts = useMemo(() => buildAlerts(objekt, fakturor), [objekt, fakturor])
   const fastighetNamnById = useMemo(
     () => (fastighet ? { [fastighet.id]: fastighet.namn } : {}),
@@ -40,8 +54,16 @@ export function FastighetPage() {
   if (error || !fastighet)
     return (
       <Layout>
-        <div className="mt-10 rounded-card border border-wine-soft bg-wine-soft px-5 py-4 text-wine">
-          {error ?? 'Fastigheten hittades inte, eller så saknar du åtkomst.'}
+        <div className="mt-10 flex items-center justify-between gap-4 rounded-card border border-wine-soft bg-wine-soft px-5 py-4 text-wine">
+          <span>{error ?? 'Fastigheten hittades inte, eller så saknar du åtkomst.'}</span>
+          {error && (
+            <button
+              onClick={reload}
+              className="whitespace-nowrap rounded-full border border-wine px-4 py-1.5 text-[12.5px] font-semibold hover:bg-wine hover:text-white"
+            >
+              Försök igen
+            </button>
+          )}
         </div>
         <Link to="/" className="mt-4 inline-block text-sm font-semibold text-navy">
           ← Till portföljöversikt
@@ -69,23 +91,34 @@ export function FastighetPage() {
       {tab === 'oversikt' && (
         <div>
           <SectionLabel>Kräver uppmärksamhet</SectionLabel>
-          <AlertGrid data={alerts} />
+          <AlertGrid data={alerts} canWrite={canWrite} onChanged={reload} />
         </div>
       )}
 
       {tab === 'objekt' && (
         <div>
           {canWrite(fastighet.id) && (
-            <div className="mb-3.5 flex justify-end">
+            <div className="mb-3.5 flex justify-end gap-2">
               <button
                 onClick={() => setShowNew(true)}
+                className="rounded-full border border-line px-4 py-2 text-[12.5px] font-semibold text-ink-soft hover:border-navy"
+              >
+                + Nytt objekt (manuellt)
+              </button>
+              <button
+                onClick={() => setShowNyHyresgast(true)}
                 className="rounded-full bg-navy px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-navy-deep"
               >
-                + Nytt objekt
+                + Lägg till hyresgäst
               </button>
             </div>
           )}
-          <ObjectTable objekt={objekt} canWrite={canWrite} onChanged={reload} />
+          <ObjectTable
+            objekt={objekt}
+            drifttillaggByObjekt={drifttillaggByObjekt}
+            canWrite={canWrite}
+            onChanged={reload}
+          />
         </div>
       )}
 
@@ -93,11 +126,16 @@ export function FastighetPage() {
         <div>
           <InvSummary fakturor={fakturor} />
           <SectionLabel>Per hyresgäst</SectionLabel>
-          <InvoiceGroups fakturor={fakturor} fastighetNamnById={fastighetNamnById} />
+          <InvoiceGroups
+            fakturor={fakturor}
+            fastighetNamnById={fastighetNamnById}
+            canWrite={canWrite}
+            onChanged={reload}
+          />
         </div>
       )}
 
-      {tab === 'atgarder' && <AlertGrid data={alerts} />}
+      {tab === 'atgarder' && <AlertGrid data={alerts} canWrite={canWrite} onChanged={reload} />}
 
       {showNew && (
         <ObjektFormModal
@@ -105,6 +143,17 @@ export function FastighetPage() {
           onClose={() => setShowNew(false)}
           onSaved={() => {
             setShowNew(false)
+            reload()
+          }}
+        />
+      )}
+
+      {showNyHyresgast && (
+        <NyHyresgastModal
+          fastighetId={fastighet.id}
+          onClose={() => setShowNyHyresgast(false)}
+          onSaved={() => {
+            setShowNyHyresgast(false)
             reload()
           }}
         />

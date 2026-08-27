@@ -130,3 +130,39 @@ Bygg med `npm run build` (kör typecheck + `vite build`, output i `dist/`).
 Koppla repot till Vercel eller Netlify, sätt `VITE_SUPABASE_URL` och
 `VITE_SUPABASE_ANON_KEY` som miljövariabler i respektive projekt, och peka
 sedan en subdomän (t.ex. `portal.amfast.se`) mot deploy-URL:en.
+
+## Backup
+
+`.github/workflows/backup.yml` kör en fullständig `pg_dump` av databasen
+varje natt (03:00 UTC) och sparar den som en nedladdningsbar workflow-artefakt
+i 30 dagar. Gratis, oberoende av Supabase-plan.
+
+Så här sätter du på den:
+
+1. I Supabase: **Project Settings → Database → Connection string** — kopiera
+   URI:n (Session pooler eller direktanslutning).
+2. I GitHub-repot: **Settings → Secrets and variables → Actions → New
+   repository secret**, namn `DATABASE_URL`, klistra in anslutningssträngen.
+3. Klart — workflowet kör automatiskt varje natt. Du kan även trigga det
+   manuellt under **Actions → Databasbackup → Run workflow**, och ladda ner
+   dumpen under körningens "Artifacts".
+
+Detta ersätter inte Supabase Pro-planens Point-in-Time Recovery (återställning
+till valfri minut), men ger en gratis säkerhetskopia oavsett vilken plan
+projektet står på.
+
+## Säkerhetscheck (görs i Supabase-dashboarden, inte i kod)
+
+Följande kan inte sättas via migrationer/kod — gör dem manuellt i Supabase-
+projektets inställningar:
+
+- [ ] **Authentication → Sign In / Providers → Email** — stäng av "Allow new
+  users to sign up". Appen skapar användare via Admin-panelen/dashboarden,
+  inte självregistrering, så öppen registrering behövs inte.
+- [ ] **Authentication → Policies/Security** — slå på "leaked password
+  protection" (varnar om ett valt lösenord finns i kända dataintrång).
+- [ ] **Settings → API Keys** — överväg att rotera `service_role`-nyckeln
+  om den någonsin delats utanför en betrodd kanal, och uppdatera
+  `.env.import` lokalt efteråt.
+- [ ] Aktivera tvåfaktorsinloggning på era egna konton hos Supabase, Vercel
+  och GitHub — vanligaste vägen in vid intrång är kontot, inte appen.
