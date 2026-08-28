@@ -126,7 +126,7 @@ export function FakturaDocument({
       <div className="mt-8 border-t border-line pt-3 text-[10.5px] text-muted">
         <div className="grid grid-cols-4 gap-4">
           <div>
-            <div>{AMFAST_NAMN}</div>
+            <div>{fastighet.agare ?? AMFAST_NAMN}</div>
             {fastighet.avsandare_adress && <div>{fastighet.avsandare_adress}</div>}
           </div>
           <div>
