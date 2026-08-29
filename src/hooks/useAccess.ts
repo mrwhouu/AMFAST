@@ -21,13 +21,11 @@ export function useAccess() {
 
   function canWrite(fastighetId: string) {
     if (profile?.role === 'admin') return true
-    if (profile?.role !== 'forvaltare' && profile?.role !== 'drifttekniker') return false
+    if (profile?.role !== 'forvaltare') return false
     return writeIds.has(fastighetId)
   }
 
-  const hasAnyWrite =
-    profile?.role === 'admin' ||
-    ((profile?.role === 'forvaltare' || profile?.role === 'drifttekniker') && writeIds.size > 0)
+  const hasAnyWrite = profile?.role === 'admin' || (profile?.role === 'forvaltare' && writeIds.size > 0)
 
   return { canWrite, isAdmin: profile?.role === 'admin', hasAnyWrite }
 }

@@ -1,14 +1,10 @@
-export type Role = 'admin' | 'forvaltare' | 'agare' | 'viewer' | 'drifttekniker'
+export type Role = 'admin' | 'forvaltare' | 'agare' | 'viewer'
 export type Behorighet = 'read' | 'write'
 export type ObjektStatus = 'uthyrd' | 'vakant' | 'avslutat'
 export type FakturaStatus = 'utkast' | 'skickad' | 'betald' | 'forsenad' | 'inkasso'
 export type FakturaTyp = 'faktura' | 'kreditfaktura' | 'paminnelse'
 export type Faktureringsintervall = 'manadsvis' | 'kvartalsvis'
 export type Upprakningsmodell = 'kpi' | 'fast_procent' | 'fast_belopp' | 'fast_procent_kvartal'
-export type RitningTyp = 'pdf' | 'dwg' | 'bim' | '3d_modell' | 'point_cloud' | 'ovrigt'
-export type TekniskObjektStatus = 'aktiv' | 'inaktiv' | 'borttagen'
-export type UnderhallStatus = 'planerad' | 'pagaende' | 'utford' | 'forsenad' | 'installd'
-export type BesiktningStatus = 'planerad' | 'utford' | 'forsenad' | 'installd'
 
 export interface Profile {
   id: string
@@ -33,139 +29,9 @@ export interface Fastighet {
   created_at: string
 }
 
-export interface Byggnad {
-  id: string
-  fastighet_id: string
-  namn: string
-  beskrivning: string | null
-  ordning: number
-  created_at: string
-}
-
-export interface Vaningsplan {
-  id: string
-  byggnad_id: string
-  namn: string
-  plannummer: number
-  beskrivning: string | null
-  created_at: string
-}
-
-export interface Ritning {
-  id: string
-  fastighet_id: string
-  byggnad_id: string | null
-  vaningsplan_id: string | null
-  objekt_id: string | null
-  namn: string
-  typ: RitningTyp
-  storage_path: string
-  version: number
-  is_current: boolean
-  foregaende_version_id: string | null
-  skala_kalibrering: { pixel_distans: number; verklig_distans_m: number; enhet: string } | null
-  uppladdad_av: string | null
-  created_at: string
-}
-
-export interface TekniskObjekt {
-  id: string
-  fastighet_id: string
-  byggnad_id: string | null
-  vaningsplan_id: string | null
-  objekt_id: string | null
-  namn: string
-  kategori: string
-  objekt_id_kod: string | null
-  typ: string | null
-  modell: string | null
-  tillverkare: string | null
-  installationsdatum: string | null
-  teknisk_info: Record<string, string>
-  ritning_id: string | null
-  placering_x: number | null
-  placering_y: number | null
-  status: TekniskObjektStatus
-  created_at: string
-  updated_at: string
-}
-
-export interface Dokument {
-  id: string
-  fastighet_id: string
-  byggnad_id: string | null
-  vaningsplan_id: string | null
-  objekt_id: string | null
-  tekniskt_objekt_id: string | null
-  dokumenttyp: string
-  namn: string
-  beskrivning: string | null
-  storage_path: string
-  version: number
-  ansvarig: string | null
-  datum: string
-  created_at: string
-}
-
-export interface Garanti {
-  id: string
-  tekniskt_objekt_id: string
-  leverantor: string | null
-  installerat_datum: string | null
-  garantitid_manader: number
-  garanti_till: string | null
-  dokument_id: string | null
-  created_at: string
-}
-
-export interface UnderhallAtgard {
-  id: string
-  fastighet_id: string
-  vaningsplan_id: string | null
-  objekt_id: string | null
-  tekniskt_objekt_id: string | null
-  typ: string
-  beskrivning: string | null
-  ansvarig: string | null
-  ansvarig_extern: string | null
-  planerat_datum: string | null
-  utfort_datum: string | null
-  status: UnderhallStatus
-  kostnad: number | null
-  aterkommande: boolean
-  intervall_manader: number | null
-  foregaende_atgard_id: string | null
-  created_at: string
-  updated_at: string
-}
-
-export interface Besiktning {
-  id: string
-  fastighet_id: string
-  vaningsplan_id: string | null
-  objekt_id: string | null
-  tekniskt_objekt_id: string | null
-  typ: string
-  datum: string | null
-  forfallodatum: string | null
-  ansvarig: string | null
-  ansvarig_extern: string | null
-  status: BesiktningStatus
-  protokoll_dokument_id: string | null
-  anmarkningar: string | null
-  atgarder: string | null
-  kostnad: number | null
-  aterkommande: boolean
-  intervall_manader: number | null
-  foregaende_besiktning_id: string | null
-  created_at: string
-  updated_at: string
-}
-
 export interface Objekt {
   id: string
   fastighet_id: string
-  vaningsplan_id: string | null
   objektnummer: string
   typ: string
   hyresgast: string | null

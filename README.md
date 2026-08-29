@@ -89,48 +89,11 @@ fastigheterna under `/admin → Användare & åtkomst`.
 
 | Tabell | Beskrivning |
 |---|---|
-| `profiles` | 1:1 mot `auth.users`, med roll (`admin`/`forvaltare`/`agare`/`viewer`/`drifttekniker`) |
+| `profiles` | 1:1 mot `auth.users`, med roll (`admin`/`forvaltare`/`agare`/`viewer`) |
 | `fastigheter` | Förvaltade fastigheter |
-| `objekt` | Uthyrningsbara objekt/lokaler inom en fastighet ("Lokal" i fastighetshierarkin) |
+| `objekt` | Uthyrningsbara objekt/lokaler inom en fastighet |
 | `fakturor` | Hyresavier per objekt/hyresgäst |
 | `anvandare_fastighet` | Behörighetstabell: vilka fastigheter en användare ser, och `read`/`write` |
-| `byggnader` | Byggnader inom en fastighet |
-| `vaningsplan` | Våningsplan inom en byggnad (`objekt.vaningsplan_id` placerar en lokal här) |
-| `tekniska_objekt` | Tekniska/fysiska objekt (ventilationsaggregat, pumpar, hissar m.m.) — skilt begrepp från `objekt`/lokaler |
-| `ritningar` | Ritnings-/modellfiler (PDF/DWG/BIM/3D/point cloud), kopplade till fastighet/byggnad/plan/lokal |
-| `dokument` | Dokument kopplade till valfri nivå i hierarkin eller ett tekniskt objekt |
-| `garantier` | Garantier registrerade på tekniska objekt |
-| `underhall_atgarder` | Löpande drift-/underhållsåtgärder, kan vara återkommande |
-| `besiktningar` | Besiktningar/myndighetskontroller, kan vara återkommande |
-
-### Fastighetsstruktur & digital tvilling (MVP1)
-
-Migration `0006_digital_fastighetsplattform.sql` lägger till den hierarkiska
-strukturen Fastighet → Byggnad → Våningsplan → Lokal/Tekniskt objekt som den
-digitala tvillingen navigeras genom (se `/fastighet/:id`, flikarna
-"Fastighetsstruktur" och "Tekniska objekt"). Ett tekniskt objekt (t.ex. ett
-ventilationsaggregat) har ett eget informationskort med garanti, underhåll,
-besiktningar och dokument samlat på en plats — klicka på objektet i tabellen
-för att öppna det.
-
-Återkommande underhåll/besiktningar hanteras via RPC-funktionerna
-`slutfor_underhall` och `slutfor_besiktning`: de markerar åtgärden som
-utförd och skapar nästa förekomst automatiskt utifrån `intervall_manader`,
-på samma sätt som `applicera_index` m.fl. i tidigare migrationer.
-
-Ritningar och dokument lagras i två privata Storage-bucketar (`ritningar`,
-`dokument`, skapade av migrationen) med filsökvägen `<fastighet_id>/...` —
-storage-policyerna återanvänder `has_fastighet_access()` för att en kund
-aldrig ska kunna nå en annan kunds filer.
-
-**Medvetet avgränsat i det här steget** (nästa steg enligt produktbeskrivningens
-version 2/3): ritningsvisaren öppnar filen i webbläsarens inbyggda PDF-visare
-snarare än en inbyggd zoom/pan/mät-vy — kalibrerings-/mätdata
-(`ritningar.skala_kalibrering`) och objektens ritningsposition
-(`tekniska_objekt.placering_x/y`) finns redan i schemat så en sådan vy kan
-byggas ovanpå utan schemaändringar. 3D/BIM/point cloud-visning, avancerad
-hyreshistorik/investeringar och rollbaserad vy-filtrering (t.ex. dölja
-hyresdata för `drifttekniker` i gränssnittet) är inte byggda än.
 
 `fakturor.objekt_id` är nullable, med denormaliserade `objektnummer` och
 `hyresgast`-kolumner samt en egen `fastighet_id`. Det är en avsiktlig
@@ -146,7 +109,6 @@ flaggar under "Fakturerade objekt saknas i rentroll" i Åtgärder-vyn.
 | `forvaltare` | Fastigheter kopplade via `anvandare_fastighet` | Objekt/fakturor inom sina fastigheter, om `behorighet = write` |
 | `agare` | Fastigheter kopplade via `anvandare_fastighet` | Inget — read-only |
 | `viewer` | Fastigheter kopplade via `anvandare_fastighet` | Inget — read-only |
-| `drifttekniker` | Fastigheter kopplade via `anvandare_fastighet` | Tekniska objekt, underhåll, besiktningar, ritningar och dokument inom sina fastigheter, om `behorighet = write` (RLS är i detta steg inte hårdare begränsad än `forvaltare` — se avsnittet om fastighetsstruktur nedan) |
 
 Åtkomsten styrs av RLS-policyer i databasen (`supabase/migrations/0002_rls.sql`),
 inte bara av frontend-logik.
