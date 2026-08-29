@@ -10,15 +10,20 @@ import { ObjectTable } from '../components/ObjectTable'
 import { InvSummary } from '../components/InvSummary'
 import { InvoiceGroups } from '../components/InvoiceGroups'
 import { useFastighetData } from '../hooks/useFastighetData'
+import { useFastighetsstruktur } from '../hooks/useFastighetsstruktur'
 import { useAccess } from '../hooks/useAccess'
 import { aggregate } from '../utils/aggregate'
 import { buildAlerts } from '../utils/alerts'
 import { ObjektFormModal } from '../components/ObjektFormModal'
 import { NyHyresgastModal } from '../components/NyHyresgastModal'
+import { FastighetsstrukturPanel } from '../components/FastighetsstrukturPanel'
+import { TekniskaObjektTable } from '../components/TekniskaObjektTable'
 
 const TABS = [
   { key: 'oversikt', label: 'Översikt' },
+  { key: 'struktur', label: 'Fastighetsstruktur' },
   { key: 'objekt', label: 'Objekt & kontrakt' },
+  { key: 'tekniska', label: 'Tekniska objekt' },
   { key: 'fakturor', label: 'Fakturor' },
   { key: 'atgarder', label: 'Åtgärder' },
 ]
@@ -26,6 +31,7 @@ const TABS = [
 export function FastighetPage() {
   const { id } = useParams<{ id: string }>()
   const { fastighet, objekt, fakturor, drifttillagg, loading, error, reload } = useFastighetData(id)
+  const struktur = useFastighetsstruktur(id)
   const { canWrite } = useAccess()
   const [tab, setTab] = useState('oversikt')
   const [showNew, setShowNew] = useState(false)
@@ -120,6 +126,32 @@ export function FastighetPage() {
             onChanged={reload}
           />
         </div>
+      )}
+
+      {tab === 'struktur' && (
+        <FastighetsstrukturPanel
+          fastighetId={fastighet.id}
+          byggnader={struktur.byggnader}
+          vaningsplan={struktur.vaningsplan}
+          ritningar={struktur.ritningar}
+          objekt={objekt}
+          tekniskaObjekt={struktur.tekniskaObjekt}
+          canWrite={canWrite(fastighet.id)}
+          onChanged={() => {
+            struktur.reload()
+            reload()
+          }}
+        />
+      )}
+
+      {tab === 'tekniska' && (
+        <TekniskaObjektTable
+          fastighetId={fastighet.id}
+          tekniskaObjekt={struktur.tekniskaObjekt}
+          vaningsplan={struktur.vaningsplan}
+          canWrite={canWrite(fastighet.id)}
+          onChanged={struktur.reload}
+        />
       )}
 
       {tab === 'fakturor' && (
