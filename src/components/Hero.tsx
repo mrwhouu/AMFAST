@@ -1,5 +1,6 @@
 import { fmt, fmtPct } from '../utils/format'
 import type { Aggregate } from '../utils/aggregate'
+import { Skyline } from './Skyline'
 
 export function Hero({
   eyebrow,
@@ -31,6 +32,7 @@ export function Hero({
             'repeating-linear-gradient(100deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 64px)',
         }}
       />
+      <Skyline />
       <div className="relative flex flex-wrap items-start justify-between gap-6">
         <div>
           <div className="mb-2 font-mono text-[11px] uppercase tracking-[.14em] text-[#B9C6DA]">

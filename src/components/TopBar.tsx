@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { AmfastIcon } from './AmfastLogo'
 
 export function TopBar() {
   const { profile, signOut } = useAuth()
@@ -8,8 +9,8 @@ export function TopBar() {
   return (
     <div className="mx-auto flex max-w-[1320px] flex-wrap items-center justify-between gap-3 px-4 py-4 sm:flex-nowrap sm:gap-4 sm:px-6 sm:py-5">
       <Link to="/" className="flex items-center gap-3">
-        <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[9px] bg-gradient-to-br from-navy to-navy-deep font-display text-base font-bold text-gold-soft shadow-card">
-          AM
+        <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[9px] bg-gradient-to-br from-navy to-navy-deep p-2 shadow-card">
+          <AmfastIcon height={22} color="#F4ECD8" />
         </div>
         <div className="leading-tight">
           <div className="font-display text-[16px] font-semibold tracking-[.2px] sm:text-[18px]">
