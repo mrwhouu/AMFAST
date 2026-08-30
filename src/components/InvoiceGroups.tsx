@@ -11,6 +11,12 @@ interface Group {
   rows: Faktura[]
   total: number
   flags: string[]
+  senasteSkickad: string
+}
+
+/** Senast skickade fakturan (ISO-datumsträng) sorteras överst; fakturor utan skickad_datum hamnar sist. */
+function nyastForst(a: Faktura, b: Faktura) {
+  return (b.skickad_datum ?? '').localeCompare(a.skickad_datum ?? '')
 }
 
 function groupInvoices(fakturor: Faktura[], fastighetNamnById: Record<string, string>): Group[] {
@@ -25,14 +31,17 @@ function groupInvoices(fakturor: Faktura[], fastighetNamnById: Record<string, st
         rows: [],
         total: 0,
         flags: [],
+        senasteSkickad: '',
       })
     }
     const g = groups.get(key)!
     g.rows.push(f)
     g.total += f.belopp
     if (f.anmarkning) g.flags.push(f.anmarkning)
+    if ((f.skickad_datum ?? '') > g.senasteSkickad) g.senasteSkickad = f.skickad_datum ?? ''
   }
-  return [...groups.values()]
+  for (const g of groups.values()) g.rows.sort(nyastForst)
+  return [...groups.values()].sort((a, b) => b.senasteSkickad.localeCompare(a.senasteSkickad))
 }
 
 const STATUS_LABEL: Record<FakturaStatus, string> = {
