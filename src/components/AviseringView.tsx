@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
-import type { Objekt } from '../types'
+import type { Fastighet, Objekt } from '../types'
 import { objektTotalAr } from '../types'
 import { fmt } from '../utils/format'
 import { periodRange, periodString, dagenFore, toIsoDate, type PeriodTyp } from '../utils/avisering'
@@ -16,24 +17,39 @@ interface Rad {
 const AR_NU = new Date().getFullYear()
 
 export function AviseringView({
+  fastigheter,
   objekt,
   drifttillaggSummaByObjekt,
   fastighetNamnById,
   canWrite,
   onCreated,
 }: {
+  fastigheter: Fastighet[]
   objekt: Objekt[]
   drifttillaggSummaByObjekt: Record<string, number>
   fastighetNamnById: Record<string, string>
   canWrite: (fastighetId: string) => boolean
   onCreated: () => void
 }) {
+  const skrivbaraFastigheter = useMemo(() => fastigheter.filter((f) => canWrite(f.id)), [fastigheter, canWrite])
   const [ar, setAr] = useState(AR_NU)
   const [typ, setTyp] = useState<PeriodTyp>('kvartal')
   const [varde, setVarde] = useState(1)
+  const [valdaFastigheter, setValdaFastigheter] = useState<Set<string>>(
+    () => new Set(skrivbaraFastigheter.map((f) => f.id)),
+  )
   const [rader, setRader] = useState<Rad[] | null>(null)
   const [sending, setSending] = useState(false)
-  const [resultat, setResultat] = useState<{ ok: number; fel: string[] } | null>(null)
+  const [resultat, setResultat] = useState<{ ok: number; fel: string[]; ids: string[] } | null>(null)
+
+  function toggleFastighet(id: string) {
+    setValdaFastigheter((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   function byggLista() {
     const range = periodRange(ar, typ, varde)
@@ -43,6 +59,7 @@ export function AviseringView({
     const nya = objekt
       .filter((o) => {
         if (o.status !== 'uthyrd' || !canWrite(o.fastighet_id)) return false
+        if (!valdaFastigheter.has(o.fastighet_id)) return false
         if (o.kontrakt_fran && new Date(o.kontrakt_fran) > range.end) return false
         if (o.kontrakt_tom && new Date(o.kontrakt_tom) < range.start) return false
         return true
@@ -75,6 +92,7 @@ export function AviseringView({
     setSending(true)
     let ok = 0
     const fel: string[] = []
+    const skapadeIds: string[] = []
     const periodLabel = periodString(ar, typ, varde)
 
     for (const r of attSkicka) {
@@ -112,12 +130,16 @@ export function AviseringView({
         belopp,
         typ: 'hyra',
       })
-      if (radError) fel.push(`${r.objekt.objektnummer} (${r.objekt.hyresgast}): faktura skapad men rad misslyckades — ${radError.message}`)
-      else ok++
+      if (radError) {
+        fel.push(`${r.objekt.objektnummer} (${r.objekt.hyresgast}): faktura skapad men rad misslyckades — ${radError.message}`)
+      } else {
+        ok++
+        skapadeIds.push(data.id)
+      }
     }
 
     setSending(false)
-    setResultat({ ok, fel })
+    setResultat({ ok, fel, ids: skapadeIds })
     if (ok > 0) {
       setRader(null)
       onCreated()
@@ -170,14 +192,45 @@ export function AviseringView({
           </label>
           <button
             onClick={byggLista}
-            className="rounded-lg bg-navy px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-navy-deep"
+            disabled={valdaFastigheter.size === 0}
+            className="rounded-lg bg-navy px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-navy-deep disabled:opacity-60"
           >
             Bygg lista
           </button>
         </div>
-        <p className="mt-2 text-[11.5px] text-muted">
+
+        <div className="mt-3 border-t border-line-soft pt-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Fastigheter</span>
+            <span className="flex gap-3 text-[11.5px] font-semibold">
+              <button
+                onClick={() => setValdaFastigheter(new Set(skrivbaraFastigheter.map((f) => f.id)))}
+                className="text-navy hover:text-gold"
+              >
+                Alla
+              </button>
+              <button onClick={() => setValdaFastigheter(new Set())} className="text-navy hover:text-gold">
+                Ingen
+              </button>
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+            {skrivbaraFastigheter.map((f) => (
+              <label key={f.id} className="flex items-center gap-1.5 text-[12.5px]">
+                <input
+                  type="checkbox"
+                  checked={valdaFastigheter.has(f.id)}
+                  onChange={() => toggleFastighet(f.id)}
+                />
+                {f.namn}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <p className="mt-3 text-[11.5px] text-muted">
           Period: <b>{periodRange(ar, typ, varde).label}</b>. Listar objekt med aktivt kontrakt under perioden,
-          bland de fastigheter du har skrivbehörighet till. Inget skapas förrän du godkänner.
+          bland valda fastigheter du har skrivbehörighet till. Inget skapas förrän du godkänner.
         </p>
       </div>
 
@@ -195,11 +248,11 @@ export function AviseringView({
               Inga aktiva kontrakt hittades för den perioden.
             </div>
           ) : (
-            <div>
+            <div className="overflow-x-auto">
               {rader.map((r, i) => (
                 <div
                   key={r.objekt.id}
-                  className={`grid grid-cols-[24px_90px_1fr_120px_140px_100px] items-center gap-2.5 border-b border-line-soft px-[18px] py-2.5 text-[12.5px] last:border-none ${
+                  className={`grid min-w-[620px] grid-cols-[24px_90px_1fr_120px_140px_100px] items-center gap-2.5 border-b border-line-soft px-[18px] py-2.5 text-[12.5px] last:border-none ${
                     r.inkluderad ? '' : 'opacity-40'
                   }`}
                 >
@@ -262,7 +315,19 @@ export function AviseringView({
             resultat.fel.length ? 'border-amber-soft bg-amber-soft text-amber' : 'border-green-soft bg-green-soft text-green'
           }`}
         >
-          <div className="font-semibold">{resultat.ok} fakturor skapade.</div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="font-semibold">{resultat.ok} fakturor skapade.</div>
+            {resultat.ids.length > 0 && (
+              <Link
+                to={`/fakturor/skriv-ut?ids=${resultat.ids.join(',')}`}
+                target="_blank"
+                rel="noreferrer"
+                className="whitespace-nowrap rounded-lg bg-navy px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-navy-deep"
+              >
+                Öppna alla {resultat.ids.length} som PDF
+              </Link>
+            )}
+          </div>
           {resultat.fel.length > 0 && (
             <ul className="mt-1.5 list-disc pl-4">
               {resultat.fel.map((f, i) => (
