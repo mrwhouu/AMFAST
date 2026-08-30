@@ -9,8 +9,16 @@ export function FakturorBulkPrintPage() {
   const { entries, objektById, loading, error } = useFakturorBulk(params.get('ids') ?? '')
   const [laddarNer, setLaddarNer] = useState(false)
 
+  const antalRedanNedladdade = entries.filter((e) => e.faktura.pdf_nedladdad_at).length
+
   async function laddaNer() {
     if (entries.length === 0) return
+    if (
+      antalRedanNedladdade > 0 &&
+      !confirm(`${antalRedanNedladdade} av ${entries.length} fakturor är redan nedladdade sedan tidigare. Ladda ner alla igen?`)
+    ) {
+      return
+    }
     setLaddarNer(true)
     try {
       const { laddaNerFakturorSomPdf } = await import('../pdf/fakturaPdf')
@@ -43,7 +51,10 @@ export function FakturorBulkPrintPage() {
         <Link to="/" className="text-[12.5px] font-semibold text-navy hover:text-gold">
           ← Tillbaka
         </Link>
-        <div className="text-[12.5px] text-muted">{entries.length} fakturor</div>
+        <div className="text-[12.5px] text-muted">
+          {entries.length} fakturor
+          {antalRedanNedladdade > 0 && <span className="ml-2 text-green">✓ {antalRedanNedladdade} redan nedladdade</span>}
+        </div>
         <div className="flex gap-2">
           <button
             onClick={laddaNer}

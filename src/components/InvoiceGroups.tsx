@@ -58,6 +58,29 @@ function StatusBadge({ status }: { status: FakturaStatus }) {
   )
 }
 
+function formatNedladdad(iso: string) {
+  const d = new Date(iso)
+  const datum = d.toLocaleDateString('sv-SE')
+  const tid = d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+  return `${datum} ${tid}`
+}
+
+function NedladdadBadge({ nedladdadAt }: { nedladdadAt: string | null }) {
+  if (!nedladdadAt) return null
+  return (
+    <span
+      title={`PDF nedladdad ${formatNedladdad(nedladdadAt)} — se upp så du inte skickar den igen av misstag`}
+      className="inline-flex items-center gap-1 rounded-full bg-green-soft px-2 py-0.5 text-[10px] font-bold text-green"
+    >
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3v12m0 0l-4-4m4 4l4-4" />
+        <path d="M4 19h16" />
+      </svg>
+      Nedladdad {formatNedladdad(nedladdadAt)}
+    </span>
+  )
+}
+
 export function InvoiceGroups({
   fakturor,
   fastighetNamnById,
@@ -173,6 +196,7 @@ export function InvoiceGroups({
                     <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted">
                         <StatusBadge status={r.status} />
+                        <NedladdadBadge nedladdadAt={r.pdf_nedladdad_at} />
                         {r.skickad_datum && <span>Skickad {r.skickad_datum}</span>}
                         {r.betald_datum && <span>Betald {r.betald_datum}</span>}
                         {r.inkasso_datum && <span>Inkasso {r.inkasso_datum}</span>}

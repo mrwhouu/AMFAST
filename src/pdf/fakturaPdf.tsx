@@ -1,4 +1,5 @@
 import { Document, Page, View, Text, StyleSheet, Svg, Path, pdf } from '@react-pdf/renderer'
+import { supabase } from '../lib/supabaseClient'
 import type { Faktura, FakturaRad, Fastighet, Objekt } from '../types'
 import { fmt } from '../utils/format'
 
@@ -196,4 +197,7 @@ export async function laddaNerFakturorSomPdf(entries: FakturaPdfEntry[], objektB
   a.click()
   a.remove()
   URL.revokeObjectURL(url)
+
+  const ids = entries.map((e) => e.faktura.id)
+  await supabase.from('fakturor').update({ pdf_nedladdad_at: new Date().toISOString() }).in('id', ids)
 }

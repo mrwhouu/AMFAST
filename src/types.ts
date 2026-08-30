@@ -110,6 +110,7 @@ export interface Faktura {
   inkasso_markerad_at: string | null
   typ: FakturaTyp
   ursprunglig_faktura_id: string | null
+  pdf_nedladdad_at: string | null
   created_at: string
 }
 
