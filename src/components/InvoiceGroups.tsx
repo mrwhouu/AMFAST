@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import type { Faktura, FakturaStatus } from '../types'
@@ -81,6 +81,33 @@ function NedladdadBadge({ nedladdadAt }: { nedladdadAt: string | null }) {
   )
 }
 
+function IconButton({
+  title,
+  color,
+  disabled,
+  onClick,
+  children,
+}: {
+  title: string
+  color: string
+  disabled: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`flex h-7 w-7 items-center justify-center rounded-md ${color} hover:bg-surface-sunken disabled:opacity-40`}
+    >
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {children}
+      </svg>
+    </button>
+  )
+}
+
 export function InvoiceGroups({
   fakturor,
   fastighetNamnById,
@@ -124,6 +151,18 @@ export function InvoiceGroups({
     if (!confirm('Skicka en påminnelse för denna faktura? En ny påminnelsefaktura (60 kr, 14 dagars förfallotid) skapas.')) return
     setMarking(fakturaId)
     const { error } = await supabase.rpc('skicka_paminnelse', { p_faktura_id: fakturaId })
+    setMarking(null)
+    if (error) {
+      alert(error.message)
+      return
+    }
+    onChanged()
+  }
+
+  async function taBort(fakturaId: string, fakturanummer: string) {
+    if (!confirm(`Ta bort faktura ${fakturanummer}? Det går inte att ångra — använd bara om den skapades av misstag.`)) return
+    setMarking(fakturaId)
+    const { error } = await supabase.from('fakturor').delete().eq('id', fakturaId)
     setMarking(null)
     if (error) {
       alert(error.message)
@@ -202,30 +241,43 @@ export function InvoiceGroups({
                         {r.inkasso_datum && <span>Inkasso {r.inkasso_datum}</span>}
                       </div>
                       {canWrite(r.fastighet_id) && r.status !== 'inkasso' && r.status !== 'betald' && (
-                        <div className="flex flex-wrap items-center gap-3">
-                          <button
+                        <div className="flex items-center gap-1">
+                          <IconButton
+                            title="Markera som betald"
+                            color="text-green"
+                            disabled={marking === r.id}
                             onClick={() => markBetald(r.id)}
-                            disabled={marking === r.id}
-                            className="text-[11px] font-semibold text-green hover:text-green/70 disabled:opacity-60"
                           >
-                            Markera som betald
-                          </button>
+                            <path d="M4 12l5 5L20 6" />
+                          </IconButton>
                           {r.typ === 'faktura' && (
-                            <button
-                              onClick={() => skickaPaminnelse(r.id)}
+                            <IconButton
+                              title="Skicka påminnelse"
+                              color="text-amber"
                               disabled={marking === r.id}
-                              className="text-[11px] font-semibold text-amber hover:text-amber/70 disabled:opacity-60"
+                              onClick={() => skickaPaminnelse(r.id)}
                             >
-                              Skicka påminnelse
-                            </button>
+                              <path d="M12 3a5 5 0 0 0-5 5v3.2c0 .7-.25 1.37-.7 1.9L5 15h14l-1.3-1.9a3 3 0 0 1-.7-1.9V8a5 5 0 0 0-5-5z" />
+                              <path d="M9.5 18a2.5 2.5 0 0 0 5 0" />
+                            </IconButton>
                           )}
-                          <button
-                            onClick={() => markInkasso(r.id)}
+                          <IconButton
+                            title="Markera som skickad till inkasso"
+                            color="text-wine"
                             disabled={marking === r.id}
-                            className="text-[11px] font-semibold text-wine hover:text-wine/70 disabled:opacity-60"
+                            onClick={() => markInkasso(r.id)}
                           >
-                            Markera som skickad till inkasso
-                          </button>
+                            <path d="M12 3l9 18H3z" />
+                            <path d="M12 10v4M12 17.5v.01" />
+                          </IconButton>
+                          <IconButton
+                            title="Ta bort (endast om skapad av misstag)"
+                            color="text-muted hover:text-wine"
+                            disabled={marking === r.id}
+                            onClick={() => taBort(r.id, r.fakturanummer)}
+                          >
+                            <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m-8 0 1 12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-12" />
+                          </IconButton>
                         </div>
                       )}
                     </div>
