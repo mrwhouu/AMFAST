@@ -5,9 +5,12 @@ export function InvSummary({ fakturor }: { fakturor: Faktura[] }) {
   const total = fakturor.reduce((s, i) => s + i.belopp, 0)
   const flagged = fakturor.filter((i) => i.anmarkning)
   const missing = fakturor.filter((i) => i.anmarkning?.includes('Saknas') || !i.objekt_id)
+  const idag = new Date().toISOString().slice(0, 10)
+  const skickadeIdag = fakturor.filter((i) => i.skickad_datum === idag)
 
   const cards: [string, string, string][] = [
     ['Antal fakturor', `${fakturor.length} st`, ''],
+    ['Skickade idag', `${skickadeIdag.length} st`, skickadeIdag.length > 0 ? 'text-green' : ''],
     ['Fakturerat belopp, period', `${fmt(total)} kr`, ''],
     ['Med anmärkning', `${flagged.length} st`, 'text-amber'],
     ['Ej i rentroll', `${missing.length} st`, 'text-wine'],
