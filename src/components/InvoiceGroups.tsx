@@ -157,16 +157,18 @@ export function InvoiceGroups({
               <div>
                 {g.rows.map((r) => (
                   <div key={r.id} className="border-t border-line-soft px-[18px] py-2.5 text-[12.5px]">
-                    <div className="grid grid-cols-[90px_90px_1fr_110px_90px] items-center gap-2.5">
-                      <div className="font-mono font-semibold text-navy">
-                        <Link to={`/faktura/${r.id}`} className="hover:text-gold hover:underline" title="Visa/skriv ut faktura">
-                          {r.fakturanummer}
-                        </Link>
+                    <div className="overflow-x-auto">
+                      <div className="grid min-w-[540px] grid-cols-[90px_90px_1fr_110px_90px] items-center gap-2.5">
+                        <div className="font-mono font-semibold text-navy">
+                          <Link to={`/faktura/${r.id}`} className="hover:text-gold hover:underline" title="Visa/skriv ut faktura">
+                            {r.fakturanummer}
+                          </Link>
+                        </div>
+                        <div className="font-mono text-muted">{r.period}</div>
+                        <div className="text-[11.5px] text-amber">{r.anmarkning ?? ''}</div>
+                        <div className="text-right font-mono text-muted">förf. {r.forfallodatum}</div>
+                        <div className="text-right font-mono font-semibold">{fmt(r.belopp)} kr</div>
                       </div>
-                      <div className="font-mono text-muted">{r.period}</div>
-                      <div className="text-[11.5px] text-amber">{r.anmarkning ?? ''}</div>
-                      <div className="text-right font-mono text-muted">förf. {r.forfallodatum}</div>
-                      <div className="text-right font-mono font-semibold">{fmt(r.belopp)} kr</div>
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted">

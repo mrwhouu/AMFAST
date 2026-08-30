@@ -248,11 +248,11 @@ export function AviseringView({
               Inga aktiva kontrakt hittades för den perioden.
             </div>
           ) : (
-            <div>
+            <div className="overflow-x-auto">
               {rader.map((r, i) => (
                 <div
                   key={r.objekt.id}
-                  className={`grid grid-cols-[24px_90px_1fr_120px_140px_100px] items-center gap-2.5 border-b border-line-soft px-[18px] py-2.5 text-[12.5px] last:border-none ${
+                  className={`grid min-w-[620px] grid-cols-[24px_90px_1fr_120px_140px_100px] items-center gap-2.5 border-b border-line-soft px-[18px] py-2.5 text-[12.5px] last:border-none ${
                     r.inkluderad ? '' : 'opacity-40'
                   }`}
                 >

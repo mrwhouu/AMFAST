@@ -84,8 +84,8 @@ export function AdminPage() {
               + Ny fastighet
             </button>
           </div>
-          <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
-            <table className="w-full border-collapse text-[12.8px]">
+          <div className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
+            <table className="w-full min-w-[640px] border-collapse text-[12.8px]">
               <thead>
                 <tr>
                   {['Namn', 'Adress', 'Ägare', 'Förvaltare', ''].map((h) => (
@@ -128,8 +128,8 @@ export function AdminPage() {
       )}
 
       {tab === 'anvandare' && (
-        <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
-          <table className="w-full border-collapse text-[12.8px]">
+        <div className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
+          <table className="w-full min-w-[640px] border-collapse text-[12.8px]">
             <thead>
               <tr>
                 <th className="whitespace-nowrap border-b border-line bg-surface-sunken px-3.5 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-wide text-muted">
