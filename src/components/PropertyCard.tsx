@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Fastighet, Objekt } from '../types'
 import { aggregate } from '../utils/aggregate'
 import { fmt, fmtArea } from '../utils/format'
 import { OccupancyRibbon } from './OccupancyRibbon'
+import { FastighetQuickView } from './FastighetQuickView'
 
 const PROP_COLORS = ['#1F3A5F', '#A6812E', '#2E7D5B', '#8E2A3B', '#B4711E']
 
@@ -22,9 +24,13 @@ export function PropertyCard({
   const color = PROP_COLORS[colorIndex % PROP_COLORS.length]
   const belPct = agg.areaTot > 0 ? Math.round(((agg.areaTot - agg.areaVac) / agg.areaTot) * 100) : 0
   const streets = [...new Set(active.map((o) => o.gata).filter(Boolean))].join(' · ')
+  const [showQuickView, setShowQuickView] = useState(false)
 
   return (
-    <div className="rounded-card border border-line bg-surface px-5 pb-4 pt-[18px] shadow-card">
+    <div
+      onClick={() => setShowQuickView(true)}
+      className="cursor-pointer rounded-card border border-line bg-surface px-5 pb-4 pt-[18px] shadow-card transition-shadow hover:shadow-lg"
+    >
       <div className="mb-0.5 flex items-baseline justify-between">
         <h3 className="m-0 font-display text-[19px] font-semibold">{fastighet.namn}</h3>
         <span className="font-mono text-[11px] text-muted">{active.length} objekt</span>
@@ -57,10 +63,20 @@ export function PropertyCard({
 
       <Link
         to={`/fastighet/${fastighet.id}`}
+        onClick={(e) => e.stopPropagation()}
         className="mt-3.5 flex cursor-pointer items-center gap-1.5 border-t border-dashed border-line pt-3 text-xs font-semibold text-navy hover:text-gold"
       >
         Visa objekt →
       </Link>
+
+      {showQuickView && (
+        <FastighetQuickView
+          fastighet={fastighet}
+          objekt={objekt}
+          drifttillaggSummaByObjekt={drifttillaggSummaByObjekt}
+          onClose={() => setShowQuickView(false)}
+        />
+      )}
     </div>
   )
 }
