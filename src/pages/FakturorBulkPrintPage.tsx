@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useFakturorBulk } from '../hooks/useFakturorBulk'
 import { FakturaDocument } from '../components/FakturaDocument'
@@ -6,6 +7,20 @@ import { FullScreenState } from '../components/FullScreenState'
 export function FakturorBulkPrintPage() {
   const [params] = useSearchParams()
   const { entries, objektById, loading, error } = useFakturorBulk(params.get('ids') ?? '')
+  const [laddarNer, setLaddarNer] = useState(false)
+
+  async function laddaNer() {
+    if (entries.length === 0) return
+    setLaddarNer(true)
+    try {
+      const { laddaNerFakturorSomPdf } = await import('../pdf/fakturaPdf')
+      await laddaNerFakturorSomPdf(entries, objektById, 'avisering.pdf')
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Kunde inte skapa PDF:en')
+    } finally {
+      setLaddarNer(false)
+    }
+  }
 
   if (loading) return <FullScreenState label="Hämtar fakturor…" />
   if (error) {
@@ -29,12 +44,21 @@ export function FakturorBulkPrintPage() {
           ← Tillbaka
         </Link>
         <div className="text-[12.5px] text-muted">{entries.length} fakturor</div>
-        <button
-          onClick={() => window.print()}
-          className="rounded-lg bg-navy px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-navy-deep"
-        >
-          Skriv ut / Spara som PDF
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={laddaNer}
+            disabled={laddarNer || entries.length === 0}
+            className="rounded-lg bg-navy px-4 py-2 text-[12.5px] font-semibold text-white hover:bg-navy-deep disabled:opacity-60"
+          >
+            {laddarNer ? 'Skapar PDF…' : 'Ladda ner PDF'}
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="rounded-lg border border-line px-4 py-2 text-[12.5px] font-semibold text-ink-soft hover:border-navy"
+          >
+            Skriv ut
+          </button>
+        </div>
       </div>
 
       {entries.length === 0 ? (
