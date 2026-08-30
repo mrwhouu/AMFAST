@@ -102,8 +102,55 @@ const FAQ: FaqEntry[] = [
   {
     fraga: 'Var hittar jag admin-inställningar?',
     svar:
-      'Adminpanelen nås via menyn för användare med adminbehörighet. Där hanteras t.ex. användare och fastighetsbehörigheter.',
+      'Adminpanelen nås via "Admin"-länken högst upp, om du har adminbehörighet. Där hanterar du fastigheter (skapa/redigera/ta bort) och vilka användare som har läs- eller skrivåtkomst till varje fastighet.',
     nyckelord: 'admin inställningar behörighet',
+  },
+  {
+    fraga: 'Vad visar fliken "Översikt"?',
+    svar:
+      'En snabb helhetsbild: fastighetskort med uthyrningsgrad, area och hyresintäkt, samt en lista med saker som kräver uppmärksamhet (t.ex. utgående avtal eller obetalda fakturor).',
+    nyckelord: 'översikt startsida dashboard',
+  },
+  {
+    fraga: 'Vad visar fliken "Objekt & kontrakt"?',
+    svar:
+      'En sökbar/filtrerbar lista över alla objekt (lokaler/lägenheter) med hyresgäst, yta, hyra och status. Här kan du också öppna index-uppräkning, historik, drifttillägg och dela ett objekt i flera mindre.',
+    nyckelord: 'objekt kontrakt lista tabell',
+  },
+  {
+    fraga: 'Vad är fliken "Åtgärder" till för?',
+    svar:
+      'Den samlar allt som kräver uppmärksamhet just nu — samma lista som visas på Översikt, men i eget fokus: t.ex. avtal som snart går ut eller fakturor som inte betalats.',
+    nyckelord: 'åtgärder alerts varningar',
+  },
+  {
+    fraga: 'Hur delar jag ett objekt i flera mindre objekt?',
+    svar:
+      'Öppna objektet i listan under "Objekt & kontrakt" och välj delningsfunktionen. Du anger hur ytan ska delas upp, så skapas nya objekt utifrån det ursprungliga.',
+    nyckelord: 'dela objekt yta stycka',
+  },
+  {
+    fraga: 'Hur ser jag historiken för ett objekt?',
+    svar:
+      'Klicka på historik-knappen vid objektet i listan under "Objekt & kontrakt". Där ser du tidigare hyresgäster, avtal och ändringar.',
+    nyckelord: 'historik objekt tidigare',
+  },
+  {
+    fraga: 'Hur lägger jag till en ny fastighet?',
+    svar: 'Gå till Admin → fliken "Fastigheter" → "+ Ny fastighet". Där anger du namn, adress, ägare och betalningsuppgifter.',
+    nyckelord: 'ny fastighet skapa admin',
+  },
+  {
+    fraga: 'Hur ger jag en kollega åtkomst till en fastighet?',
+    svar:
+      'Gå till Admin → fliken "Användare & åtkomst". Klicka på rutan för användaren och fastigheten för att växla mellan ingen/läs/skriv-åtkomst.',
+    nyckelord: 'åtkomst behörighet användare kollega',
+  },
+  {
+    fraga: 'Vad är skillnaden på läs- och skrivåtkomst?',
+    svar:
+      'Läsåtkomst ("read") innebär att man kan se en fastighets data. Skrivåtkomst ("write") innebär att man även kan redigera, avisera och markera fakturor för den fastigheten.',
+    nyckelord: 'läs skriv read write roll',
   },
 ]
 
