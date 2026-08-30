@@ -5,6 +5,7 @@ import type { Fastighet, Objekt } from '../types'
 import { objektTotalAr } from '../types'
 import { fmt } from '../utils/format'
 import { periodRange, periodString, dagenFore, toIsoDate, type PeriodTyp } from '../utils/avisering'
+import type { FakturaPdfEntry } from '../pdf/fakturaPdf'
 
 interface Rad {
   objekt: Objekt
@@ -32,6 +33,7 @@ export function AviseringView({
   onCreated: () => void
 }) {
   const skrivbaraFastigheter = useMemo(() => fastigheter.filter((f) => canWrite(f.id)), [fastigheter, canWrite])
+  const fastighetById = useMemo(() => Object.fromEntries(fastigheter.map((f) => [f.id, f])), [fastigheter])
   const [ar, setAr] = useState(AR_NU)
   const [typ, setTyp] = useState<PeriodTyp>('kvartal')
   const [varde, setVarde] = useState(1)
@@ -93,7 +95,10 @@ export function AviseringView({
     let ok = 0
     const fel: string[] = []
     const skapadeIds: string[] = []
+    const pdfEntries: FakturaPdfEntry[] = []
+    const objektById: Record<string, Objekt> = {}
     const periodLabel = periodString(ar, typ, varde)
+    const periodLabelText = periodRange(ar, typ, varde).label
 
     for (const r of attSkicka) {
       const fakturanummer = `${r.objekt.objektnummer}-${periodLabel}`
@@ -121,10 +126,11 @@ export function AviseringView({
         continue
       }
 
+      const radBeskrivning = `Hyra ${periodLabelText}`
       const { error: radError } = await supabase.from('faktura_rader').insert({
         faktura_id: data.id,
         objekt_id: r.objekt.id,
-        beskrivning: `Hyra ${periodRange(ar, typ, varde).label}`,
+        beskrivning: radBeskrivning,
         antal: 1,
         a_pris: belopp,
         belopp,
@@ -132,9 +138,31 @@ export function AviseringView({
       })
       if (radError) {
         fel.push(`${r.objekt.objektnummer} (${r.objekt.hyresgast}): faktura skapad men rad misslyckades — ${radError.message}`)
-      } else {
-        ok++
-        skapadeIds.push(data.id)
+        continue
+      }
+
+      ok++
+      skapadeIds.push(data.id)
+      objektById[r.objekt.id] = r.objekt
+      const fastighetForRad = fastighetById[data.fastighet_id]
+      if (fastighetForRad) {
+        pdfEntries.push({
+          faktura: data,
+          fastighet: fastighetForRad,
+          rader: [
+            {
+              id: `${data.id}-rad`,
+              faktura_id: data.id,
+              objekt_id: r.objekt.id,
+              beskrivning: radBeskrivning,
+              antal: 1,
+              a_pris: belopp,
+              belopp,
+              typ: 'hyra',
+              skapad_at: '',
+            },
+          ],
+        })
       }
     }
 
@@ -143,6 +171,13 @@ export function AviseringView({
     if (ok > 0) {
       setRader(null)
       onCreated()
+      if (pdfEntries.length > 0) {
+        import('../pdf/fakturaPdf')
+          .then(({ laddaNerFakturorSomPdf }) => laddaNerFakturorSomPdf(pdfEntries, objektById, `avisering-${periodLabel}.pdf`))
+          .catch((err) => {
+            setResultat((prev) => (prev ? { ...prev, fel: [...prev.fel, `PDF-nedladdning misslyckades: ${err.message ?? err}`] } : prev))
+          })
+      }
     }
   }
 
@@ -151,7 +186,17 @@ export function AviseringView({
   return (
     <div>
       <div className="mb-5 rounded-card border border-line bg-surface p-5 shadow-card">
-        <div className="mb-3 text-[13.5px] font-bold">Bygg aviseringslista</div>
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-[13.5px] font-bold">Bygg aviseringslista</span>
+          <details className="group relative">
+            <summary className="flex h-[18px] w-[18px] cursor-pointer list-none items-center justify-center rounded-full border border-line text-[11px] font-bold text-muted hover:border-navy hover:text-navy [&::-webkit-details-marker]:hidden">
+              ?
+            </summary>
+            <div className="absolute left-0 top-[26px] z-10 w-[280px] rounded-lg border border-line bg-surface p-3 text-[12px] leading-relaxed text-ink-soft shadow-card">
+              <b className="text-ink">Så funkar det:</b> välj period → bocka i vilka fastigheter → "Bygg lista" → granska beloppen → "Godkänn och skicka". En PDF med alla fakturor laddas ner automatiskt till din dator direkt efteråt — klart!
+            </div>
+          </details>
+        </div>
         <div className="flex flex-wrap items-end gap-3">
           <label className="block">
             <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">År</span>
@@ -316,15 +361,17 @@ export function AviseringView({
           }`}
         >
           <div className="flex items-center justify-between gap-3">
-            <div className="font-semibold">{resultat.ok} fakturor skapade.</div>
+            <div className="font-semibold">
+              {resultat.ok} fakturor skapade{resultat.ok > 0 ? ' — en PDF har laddats ner automatiskt.' : '.'}
+            </div>
             {resultat.ids.length > 0 && (
               <Link
                 to={`/fakturor/skriv-ut?ids=${resultat.ids.join(',')}`}
                 target="_blank"
                 rel="noreferrer"
-                className="whitespace-nowrap rounded-lg bg-navy px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-navy-deep"
+                className="whitespace-nowrap rounded-lg border border-line px-3 py-1.5 text-[12px] font-semibold text-ink-soft hover:border-navy"
               >
-                Öppna alla {resultat.ids.length} som PDF
+                Öppna igen
               </Link>
             )}
           </div>
