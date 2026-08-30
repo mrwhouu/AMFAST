@@ -157,6 +157,7 @@ export function DashboardPage() {
 
       {tab === 'avisering' && hasAnyWrite && (
         <AviseringView
+          fastigheter={fastigheter}
           objekt={objekt}
           drifttillaggSummaByObjekt={drifttillaggSummaByObjekt}
           fastighetNamnById={fastighetNamnById}

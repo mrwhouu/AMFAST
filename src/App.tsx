@@ -8,6 +8,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { FastighetPage } from './pages/FastighetPage'
 import { AdminPage } from './pages/AdminPage'
 import { FakturaPrintPage } from './pages/FakturaPrintPage'
+import { FakturorBulkPrintPage } from './pages/FakturorBulkPrintPage'
 
 export default function App() {
   if (!isSupabaseConfigured) return <ConfigMissing />
@@ -37,6 +38,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <FakturaPrintPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/fakturor/skriv-ut"
+          element={
+            <ProtectedRoute>
+              <FakturorBulkPrintPage />
             </ProtectedRoute>
           }
         />
