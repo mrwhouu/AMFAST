@@ -119,9 +119,12 @@ export function InvoiceGroups({
   canWrite: (fastighetId: string) => boolean
   onChanged: () => void
 }) {
-  const groups = groupInvoices(fakturor, fastighetNamnById)
   const [openKey, setOpenKey] = useState<string | null>(null)
   const [marking, setMarking] = useState<string | null>(null)
+  const [datumFilter, setDatumFilter] = useState('')
+
+  const synligaFakturor = datumFilter ? fakturor.filter((f) => f.skickad_datum === datumFilter) : fakturor
+  const groups = groupInvoices(synligaFakturor, fastighetNamnById)
 
   async function markInkasso(fakturaId: string) {
     if (!confirm('Markera denna faktura som skickad till inkasso?')) return
@@ -173,6 +176,33 @@ export function InvoiceGroups({
 
   return (
     <div>
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-[12.5px]">
+        <label className="flex items-center gap-1.5 text-muted">
+          Visa skickade
+          <input
+            type="date"
+            value={datumFilter}
+            onChange={(e) => setDatumFilter(e.target.value)}
+            className="input !w-auto py-1"
+          />
+        </label>
+        {datumFilter && (
+          <button onClick={() => setDatumFilter('')} className="font-semibold text-navy hover:text-gold">
+            Visa alla
+          </button>
+        )}
+        {datumFilter && (
+          <span className="text-muted">
+            {synligaFakturor.length} faktur{synligaFakturor.length === 1 ? 'a' : 'or'} skickade{' '}
+            {new Date(datumFilter).toLocaleDateString('sv-SE')}
+          </span>
+        )}
+      </div>
+      {groups.length === 0 && datumFilter && (
+        <div className="rounded-card border border-line bg-surface px-5 py-6 text-center text-[12.5px] italic text-muted shadow-card">
+          Inga fakturor skickade den {new Date(datumFilter).toLocaleDateString('sv-SE')}.
+        </div>
+      )}
       {groups.map((g) => {
         const open = openKey === g.hyresgast
         return (
@@ -221,9 +251,21 @@ export function InvoiceGroups({
                   <div key={r.id} className="border-t border-line-soft px-[18px] py-2.5 text-[12.5px]">
                     <div className="overflow-x-auto">
                       <div className="grid min-w-[540px] grid-cols-[90px_90px_1fr_110px_90px] items-center gap-2.5">
-                        <div className="font-mono font-semibold text-navy">
+                        <div className="flex items-center gap-1.5 font-mono font-semibold text-navy">
                           <Link to={`/faktura/${r.id}`} className="hover:text-gold hover:underline" title="Visa/skriv ut faktura">
                             {r.fakturanummer}
+                          </Link>
+                          <Link
+                            to={`/faktura/${r.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Visa faktura i ny flik"
+                            className="text-muted hover:text-navy"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
                           </Link>
                         </div>
                         <div className="font-mono text-muted">{r.period}</div>
