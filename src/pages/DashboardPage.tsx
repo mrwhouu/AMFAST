@@ -159,6 +159,7 @@ export function DashboardPage() {
         <AviseringView
           fastigheter={fastigheter}
           objekt={objekt}
+          fakturor={fakturor}
           drifttillaggSummaByObjekt={drifttillaggSummaByObjekt}
           fastighetNamnById={fastighetNamnById}
           canWrite={canWrite}

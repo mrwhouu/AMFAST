@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
-import type { Fastighet, Objekt } from '../types'
+import type { Faktura, Fastighet, Objekt } from '../types'
 import { objektTotalAr } from '../types'
 import { fmt } from '../utils/format'
 import {
@@ -21,6 +21,7 @@ interface Rad {
   anmarkning: string
   forfallodatum: string
   inkluderad: boolean
+  redanFakturerad: boolean
 }
 
 const AR_NU = new Date().getFullYear()
@@ -38,6 +39,7 @@ function slugifyFilnamn(namn: string) {
 export function AviseringView({
   fastigheter,
   objekt,
+  fakturor,
   drifttillaggSummaByObjekt,
   fastighetNamnById,
   canWrite,
@@ -45,6 +47,7 @@ export function AviseringView({
 }: {
   fastigheter: Fastighet[]
   objekt: Objekt[]
+  fakturor: Faktura[]
   drifttillaggSummaByObjekt: Record<string, number>
   fastighetNamnById: Record<string, string>
   canWrite: (fastighetId: string) => boolean
@@ -75,6 +78,8 @@ export function AviseringView({
     const range = periodRange(ar, typ, varde)
     const perioder = typ === 'manad' ? 12 : 4
     const forfallo = dagenFore(range.start)
+    const periodLabel = periodString(ar, typ, varde)
+    const befintligaFakturanummer = new Set(fakturor.map((f) => `${f.fastighet_id}::${f.fakturanummer}`))
 
     const nya = objekt
       .filter((o) => {
@@ -86,12 +91,14 @@ export function AviseringView({
       })
       .map((o) => {
         const total = objektTotalAr(o, drifttillaggSummaByObjekt[o.id] ?? 0)
+        const redanFakturerad = befintligaFakturanummer.has(`${o.fastighet_id}::${o.objektnummer}-${periodLabel}`)
         return {
           objekt: o,
           belopp: String(Math.round(total / perioder)),
           anmarkning: '',
           forfallodatum: forfallo,
-          inkluderad: true,
+          inkluderad: !redanFakturerad,
+          redanFakturerad,
         }
       })
 
@@ -141,7 +148,11 @@ export function AviseringView({
         .single()
 
       if (error || !data) {
-        fel.push(`${r.objekt.objektnummer} (${r.objekt.hyresgast}): ${error?.message ?? 'okänt fel'}`)
+        const meddelande =
+          error?.code === '23505'
+            ? 'Faktura för denna period finns redan för det här objektet.'
+            : (error?.message ?? 'okänt fel')
+        fel.push(`${r.objekt.objektnummer} (${r.objekt.hyresgast}): ${meddelande}`)
         continue
       }
 
@@ -315,6 +326,13 @@ export function AviseringView({
             <span className="font-mono text-sm font-semibold">{fmt(summa)} kr</span>
           </div>
 
+          {rader.some((r) => r.redanFakturerad) && (
+            <div className="border-b border-amber-soft bg-amber-soft px-[18px] py-2 text-[12px] text-amber">
+              {rader.filter((r) => r.redanFakturerad).length} objekt har redan en faktura för den här perioden och
+              är avbockade nedan — bocka i manuellt om du ändå vill skapa en till.
+            </div>
+          )}
+
           {rader.length === 0 ? (
             <div className="px-[18px] py-6 text-center text-[12.5px] italic text-muted">
               Inga aktiva kontrakt hittades för den perioden.
@@ -336,6 +354,11 @@ export function AviseringView({
                   <div className="font-mono font-semibold text-navy">{r.objekt.objektnummer}</div>
                   <div>
                     {r.objekt.hyresgast}
+                    {r.redanFakturerad && (
+                      <span className="ml-1.5 rounded-full bg-amber-soft px-1.5 py-0.5 text-[10px] font-bold text-amber">
+                        Redan fakturerad
+                      </span>
+                    )}
                     <div className="text-[11px] text-muted">{fastighetNamnById[r.objekt.fastighet_id]}</div>
                   </div>
                   <input
