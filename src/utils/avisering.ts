@@ -27,6 +27,25 @@ export function periodString(ar: number, typ: PeriodTyp, varde: number): string 
   return typ === 'manad' ? `${ar}-${String(varde).padStart(2, '0')}` : `${ar}-Q${varde}`
 }
 
+function kapitalisera(ord: string): string {
+  return ord.charAt(0).toUpperCase() + ord.slice(1)
+}
+
+/** Läsbar periodtext med månadsnamn, t.ex. "Juli 2026" eller "Juli–September 2026". */
+export function periodManaderLabel(ar: number, typ: PeriodTyp, varde: number): string {
+  if (typ === 'manad') return `${kapitalisera(MANADSNAMN[varde - 1])} ${ar}`
+  const startManad = (varde - 1) * 3
+  return `${kapitalisera(MANADSNAMN[startManad])}–${kapitalisera(MANADSNAMN[startManad + 2])} ${ar}`
+}
+
+const DINA_FASTIGHETER = new Set(['Aeolus 1', 'Diana 2', 'Juno 9'])
+
+/** Avigrupp för filnedladdning: Aeolus 1/Diana 2/Juno 9 räknas som "Dina Försäkringar",
+ * alla andra fastigheter räknas som Lindesås Fastigheter AB. */
+export function avigruppForFastighet(fastighet: { namn: string }): string {
+  return DINA_FASTIGHETER.has(fastighet.namn) ? 'Dina Försäkringar' : 'Lindesås Fastigheter AB'
+}
+
 /** Sista dagen innan periodens start, som yyyy-mm-dd (hyra betalas i förskott). */
 export function dagenFore(d: Date): string {
   const prev = new Date(d)

@@ -4,7 +4,15 @@ import { supabase } from '../lib/supabaseClient'
 import type { Fastighet, Objekt } from '../types'
 import { objektTotalAr } from '../types'
 import { fmt } from '../utils/format'
-import { periodRange, periodString, dagenFore, toIsoDate, type PeriodTyp } from '../utils/avisering'
+import {
+  periodRange,
+  periodString,
+  periodManaderLabel,
+  avigruppForFastighet,
+  dagenFore,
+  toIsoDate,
+  type PeriodTyp,
+} from '../utils/avisering'
 import type { FakturaPdfEntry } from '../pdf/fakturaPdf'
 
 interface Rad {
@@ -16,6 +24,16 @@ interface Rad {
 }
 
 const AR_NU = new Date().getFullYear()
+
+function slugifyFilnamn(namn: string) {
+  return namn
+    .toLowerCase()
+    .replace(/å/g, 'a')
+    .replace(/ä/g, 'a')
+    .replace(/ö/g, 'o')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
 
 export function AviseringView({
   fastigheter,
@@ -95,10 +113,11 @@ export function AviseringView({
     let ok = 0
     const fel: string[] = []
     const skapadeIds: string[] = []
-    const pdfEntries: FakturaPdfEntry[] = []
+    const pdfEntriesByAgare = new Map<string, FakturaPdfEntry[]>()
     const objektById: Record<string, Objekt> = {}
     const periodLabel = periodString(ar, typ, varde)
     const periodLabelText = periodRange(ar, typ, varde).label
+    const periodManader = periodManaderLabel(ar, typ, varde)
 
     for (const r of attSkicka) {
       const fakturanummer = `${r.objekt.objektnummer}-${periodLabel}`
@@ -111,7 +130,7 @@ export function AviseringView({
           objektnummer: r.objekt.objektnummer,
           hyresgast: r.objekt.hyresgast,
           fakturanummer,
-          period: periodLabel,
+          period: periodManader,
           forfallodatum: r.forfallodatum,
           belopp,
           anmarkning: r.anmarkning || null,
@@ -146,7 +165,8 @@ export function AviseringView({
       objektById[r.objekt.id] = r.objekt
       const fastighetForRad = fastighetById[data.fastighet_id]
       if (fastighetForRad) {
-        pdfEntries.push({
+        const grupp = avigruppForFastighet(fastighetForRad)
+        const entry: FakturaPdfEntry = {
           faktura: data,
           fastighet: fastighetForRad,
           rader: [
@@ -162,7 +182,10 @@ export function AviseringView({
               skapad_at: '',
             },
           ],
-        })
+        }
+        const lista = pdfEntriesByAgare.get(grupp)
+        if (lista) lista.push(entry)
+        else pdfEntriesByAgare.set(grupp, [entry])
       }
     }
 
@@ -171,9 +194,13 @@ export function AviseringView({
     if (ok > 0) {
       setRader(null)
       onCreated()
-      if (pdfEntries.length > 0) {
+      if (pdfEntriesByAgare.size > 0) {
         import('../pdf/fakturaPdf')
-          .then(({ laddaNerFakturorSomPdf }) => laddaNerFakturorSomPdf(pdfEntries, objektById, `avisering-${periodLabel}.pdf`))
+          .then(async ({ laddaNerFakturorSomPdf }) => {
+            for (const [grupp, entries] of pdfEntriesByAgare) {
+              await laddaNerFakturorSomPdf(entries, objektById, `avisering-${slugifyFilnamn(grupp)}-${periodLabel}.pdf`)
+            }
+          })
           .catch((err) => {
             setResultat((prev) => (prev ? { ...prev, fel: [...prev.fel, `PDF-nedladdning misslyckades: ${err.message ?? err}`] } : prev))
           })
@@ -193,7 +220,7 @@ export function AviseringView({
               ?
             </summary>
             <div className="absolute left-0 top-[26px] z-10 w-[280px] rounded-lg border border-line bg-surface p-3 text-[12px] leading-relaxed text-ink-soft shadow-card">
-              <b className="text-ink">Så funkar det:</b> välj period → bocka i vilka fastigheter → "Bygg lista" → granska beloppen → "Godkänn och skicka". En PDF med alla fakturor laddas ner automatiskt till din dator direkt efteråt — klart!
+              <b className="text-ink">Så funkar det:</b> välj period → bocka i vilka fastigheter → "Bygg lista" → granska beloppen → "Godkänn och skicka". En PDF per fastighetsägare (t.ex. en för Dina Försäkringar, en för Lindesås) laddas ner automatiskt till din dator direkt efteråt — klart!
             </div>
           </details>
         </div>
@@ -362,7 +389,7 @@ export function AviseringView({
         >
           <div className="flex items-center justify-between gap-3">
             <div className="font-semibold">
-              {resultat.ok} fakturor skapade{resultat.ok > 0 ? ' — en PDF har laddats ner automatiskt.' : '.'}
+              {resultat.ok} fakturor skapade{resultat.ok > 0 ? ' — en PDF per fastighetsägare har laddats ner automatiskt.' : '.'}
             </div>
             {resultat.ids.length > 0 && (
               <Link

@@ -77,6 +77,7 @@ export function FakturaPdfSida({
 
   const titel =
     faktura.typ === 'kreditfaktura' ? 'Kreditfaktura' : faktura.typ === 'paminnelse' ? 'Påminnelsefaktura' : 'Hyresfaktura'
+  const objektGata = faktura.objekt_id ? objektById[faktura.objekt_id]?.gata : null
 
   return (
     <Page size="A4" style={styles.page}>
@@ -89,7 +90,7 @@ export function FakturaPdfSida({
         <View>
           <Text style={styles.label}>Fastighetsbeteckning och adress</Text>
           <Text>{fastighet.namn}</Text>
-          {fastighet.adress && <Text style={{ color: MUTED }}>{fastighet.adress}</Text>}
+          {objektGata && <Text style={{ color: MUTED }}>{objektGata}</Text>}
         </View>
         <View>
           <View style={styles.metaRow}>
