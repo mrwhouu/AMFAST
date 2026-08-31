@@ -31,6 +31,7 @@ export function FakturaDocument({
   const totaltInklMoms = totaltExklMoms + moms
 
   const titel = faktura.typ === 'kreditfaktura' ? 'Kreditfaktura' : faktura.typ === 'paminnelse' ? 'Påminnelsefaktura' : 'Hyresfaktura'
+  const objektGata = faktura.objekt_id ? objektById[faktura.objekt_id]?.gata : null
 
   return (
     <div className="mx-auto max-w-[210mm] bg-white p-[16mm] text-[13px] text-ink print:p-0 print:shadow-none">
@@ -45,7 +46,7 @@ export function FakturaDocument({
         <div>
           <div className="mb-1 font-semibold uppercase tracking-wide text-muted">Fastighetsbeteckning och adress</div>
           <div>{fastighet.namn}</div>
-          {fastighet.adress && <div className="text-muted">{fastighet.adress}</div>}
+          {objektGata && <div className="text-muted">{objektGata}</div>}
         </div>
         <div className="text-right">
           <table className="ml-auto">
