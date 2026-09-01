@@ -48,8 +48,42 @@ const styles = StyleSheet.create({
   sumLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold' },
   sumValue: { fontSize: 11, fontFamily: 'Courier-Bold' },
   note: { marginTop: 14, backgroundColor: '#f5f6f9', padding: 8, borderRadius: 4, fontSize: 9, color: '#3c4a68' },
-  footer: { marginTop: 30, borderTop: 1, borderTopColor: LINE, paddingTop: 10, flexDirection: 'row', justifyContent: 'space-between' },
-  footerCol: { fontSize: 8, color: MUTED, lineHeight: 1.5, width: '23%' },
+  footer: { marginTop: 30, borderTop: 1.5, borderTopColor: INK, paddingTop: 10 },
+  footerTopRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  footerLabel: { fontSize: 8, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.4 },
+  footerSenderCol: { fontSize: 8, color: MUTED, lineHeight: 1.5, maxWidth: '60%' },
+  footerVatCol: { fontSize: 8, color: MUTED, lineHeight: 1.5, textAlign: 'right' },
+  payBox: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginTop: 12,
+    padding: 10,
+    backgroundColor: '#f5f6f9',
+    borderRadius: 4,
+  },
+  payBoxRow: { flexDirection: 'row', marginBottom: 2 },
+  payBoxLabel: { fontSize: 8, color: MUTED, width: 90 },
+  payBoxValue: { fontSize: 8.5, fontFamily: 'Courier-Bold' },
+  refBox: {
+    marginTop: 4,
+    borderWidth: 1.5,
+    borderColor: INK,
+    borderRadius: 2,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  refValue: { fontSize: 13, fontFamily: 'Courier-Bold' },
+  bottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTop: 1,
+    borderTopColor: LINE,
+    paddingTop: 8,
+    marginTop: 10,
+  },
+  bottomRowText: { fontSize: 8.5 },
+  footerNote: { marginTop: 6, fontSize: 7.5, fontStyle: 'italic', color: MUTED },
 })
 
 function radMoms(rad: FakturaRad, objektById: Record<string, Objekt>): boolean {
@@ -185,22 +219,63 @@ export function FakturaPdfSida({
         {faktura.anmarkning && <Text style={styles.note}>{faktura.anmarkning}</Text>}
 
         <View style={styles.footer}>
-          <View style={styles.footerCol}>
-            <Text>{fastighet.agare ?? AMFAST_NAMN}</Text>
-            {fastighet.avsandare_adress && <Text>{fastighet.avsandare_adress}</Text>}
+          <View style={styles.footerTopRow}>
+            <View style={styles.footerSenderCol}>
+              <Text style={styles.footerLabel}>Betalningsavsändare</Text>
+              <Text style={{ color: INK, marginTop: 2 }}>{fastighet.agare ?? AMFAST_NAMN}</Text>
+              {fastighet.avsandare_adress && <Text>{fastighet.avsandare_adress}</Text>}
+              {fastighet.telefon && <Text>Telefon: {fastighet.telefon}</Text>}
+              {fastighet.epost && <Text>E-post: {fastighet.epost}</Text>}
+            </View>
+            <View style={styles.footerVatCol}>
+              <Text style={styles.footerLabel}>Momsreg.nr</Text>
+              <Text style={{ color: INK, marginBottom: 4 }}>{fastighet.momsregnr ?? '—'}</Text>
+              <Text style={styles.footerLabel}>Org.nr</Text>
+              <Text style={{ color: INK }}>{fastighet.organisationsnummer ?? '—'}</Text>
+            </View>
           </View>
-          <View style={styles.footerCol}>
-            {fastighet.telefon && <Text>Telefon: {fastighet.telefon}</Text>}
-            {fastighet.epost && <Text>E-post: {fastighet.epost}</Text>}
+
+          <View style={styles.payBox}>
+            <View>
+              <View style={styles.payBoxRow}>
+                <Text style={styles.payBoxLabel}>Fakturanummer</Text>
+                <Text style={styles.payBoxValue}>{faktura.fakturanummer}</Text>
+              </View>
+              <View style={styles.payBoxRow}>
+                <Text style={styles.payBoxLabel}>Förfallodatum</Text>
+                <Text style={styles.payBoxValue}>{faktura.forfallodatum}</Text>
+              </View>
+              {faktura.objektnummer && (
+                <View style={styles.payBoxRow}>
+                  <Text style={styles.payBoxLabel}>Objektnummer</Text>
+                  <Text style={styles.payBoxValue}>{faktura.objektnummer}</Text>
+                </View>
+              )}
+              <View style={styles.payBoxRow}>
+                <Text style={styles.payBoxLabel}>Period</Text>
+                <Text style={styles.payBoxValue}>{faktura.period}</Text>
+              </View>
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={styles.footerLabel}>Referens vid betalning</Text>
+              <View style={styles.refBox}>
+                <Text style={styles.refValue}>{faktura.fakturanummer}</Text>
+              </View>
+            </View>
           </View>
-          <View style={styles.footerCol}>
-            {fastighet.organisationsnummer && <Text>Org.nr: {fastighet.organisationsnummer}</Text>}
-            {fastighet.momsregnr && <Text>Momsreg.nr: {fastighet.momsregnr}</Text>}
+
+          <View style={styles.bottomRow}>
+            <Text style={styles.bottomRowText}>
+              <Text style={{ color: MUTED }}>Till bankgironr </Text>
+              <Text style={{ fontFamily: 'Courier-Bold' }}>{fastighet.bankgiro ?? '(anges senare)'}</Text>
+            </Text>
+            <Text style={styles.bottomRowText}>
+              <Text style={{ color: MUTED }}>Betalningsmottagare </Text>
+              <Text style={{ fontFamily: 'Helvetica-Bold' }}>{fastighet.agare ?? AMFAST_NAMN}</Text>
+            </Text>
           </View>
-          <View style={styles.footerCol}>
-            <Text>Bankgiro: {fastighet.bankgiro ?? '(anges senare)'}</Text>
-            <Text>Ange fakturanummer vid betalning</Text>
-          </View>
+
+          <Text style={styles.footerNote}>Ange alltid fakturanumret som referens vid betalning.</Text>
         </View>
       </View>
     </Page>

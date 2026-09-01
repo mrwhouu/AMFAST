@@ -131,24 +131,69 @@ export function FakturaDocument({
         <div className="mt-4 rounded-lg bg-surface-sunken px-3 py-2 text-[12px] text-ink-soft">{faktura.anmarkning}</div>
       )}
 
-      <div className="mt-8 border-t border-line pt-3 text-[10.5px] text-muted">
-        <div className="grid grid-cols-4 gap-4">
+      <div className="mt-8 border-t-2 border-ink pt-3">
+        <div className="grid grid-cols-2 gap-6 text-[10.5px] text-muted">
           <div>
-            <div>{fastighet.agare ?? AMFAST_NAMN}</div>
+            <div className="mb-1.5 font-semibold uppercase tracking-wide text-ink">Betalningsavsändare</div>
+            <div className="text-ink">{fastighet.agare ?? AMFAST_NAMN}</div>
             {fastighet.avsandare_adress && <div>{fastighet.avsandare_adress}</div>}
-          </div>
-          <div>
             {fastighet.telefon && <div>Telefon: {fastighet.telefon}</div>}
             {fastighet.epost && <div>E-post: {fastighet.epost}</div>}
           </div>
+          <div className="text-right">
+            <div className="uppercase tracking-wide">Momsreg.nr</div>
+            <div className="mb-1.5 font-mono text-ink">{fastighet.momsregnr ?? '—'}</div>
+            <div className="uppercase tracking-wide">Org.nr</div>
+            <div className="font-mono text-ink">{fastighet.organisationsnummer ?? '—'}</div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-start justify-between gap-4 rounded-lg border border-line bg-surface-sunken px-4 py-3">
+          <table className="text-[11px]">
+            <tbody>
+              <tr>
+                <td className="pr-4 text-muted">Fakturanummer</td>
+                <td className="font-mono font-semibold">{faktura.fakturanummer}</td>
+              </tr>
+              <tr>
+                <td className="pr-4 text-muted">Förfallodatum</td>
+                <td className="font-mono">{faktura.forfallodatum}</td>
+              </tr>
+              {faktura.objektnummer && (
+                <tr>
+                  <td className="pr-4 text-muted">Objektnummer</td>
+                  <td className="font-mono">{faktura.objektnummer}</td>
+                </tr>
+              )}
+              <tr>
+                <td className="pr-4 text-muted">Period</td>
+                <td className="font-mono">{faktura.period}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div className="text-right">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+              Referens vid betalning
+            </div>
+            <div className="mt-1 rounded border-2 border-ink px-3 py-2 font-mono text-lg font-bold text-ink">
+              {faktura.fakturanummer}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-2 text-[11px]">
           <div>
-            {fastighet.organisationsnummer && <div>Org.nr: {fastighet.organisationsnummer}</div>}
-            {fastighet.momsregnr && <div>Momsreg.nr: {fastighet.momsregnr}</div>}
+            <span className="text-muted">Till bankgironr </span>
+            <span className="font-mono font-semibold">{fastighet.bankgiro ?? '(anges senare)'}</span>
           </div>
           <div>
-            <div>Bankgiro: {fastighet.bankgiro ?? '(anges senare)'}</div>
-            <div>Ange fakturanummer vid betalning</div>
+            <span className="text-muted">Betalningsmottagare </span>
+            <span className="font-semibold">{fastighet.agare ?? AMFAST_NAMN}</span>
           </div>
+        </div>
+
+        <div className="mt-2 text-[9.5px] italic text-muted">
+          Ange alltid fakturanumret som referens vid betalning.
         </div>
       </div>
     </div>
