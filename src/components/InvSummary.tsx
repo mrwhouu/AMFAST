@@ -1,11 +1,12 @@
 import type { Faktura } from '../types'
 import { fmt } from '../utils/format'
+import { toIsoDate } from '../utils/avisering'
 
 export function InvSummary({ fakturor }: { fakturor: Faktura[] }) {
   const total = fakturor.reduce((s, i) => s + i.belopp, 0)
   const flagged = fakturor.filter((i) => i.anmarkning)
   const missing = fakturor.filter((i) => i.anmarkning?.includes('Saknas') || !i.objekt_id)
-  const idag = new Date().toISOString().slice(0, 10)
+  const idag = toIsoDate(new Date())
   const skickadeIdag = fakturor.filter((i) => i.skickad_datum === idag)
 
   const cards: [string, string, string][] = [
