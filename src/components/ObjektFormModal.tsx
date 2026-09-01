@@ -6,6 +6,7 @@ type FormValues = {
   objektnummer: string
   typ: string
   hyresgast: string
+  faktureringsadress: string
   area_kvm: string
   kr_per_kvm: string
   hyra_ar: string
@@ -33,6 +34,7 @@ function toValues(o?: Objekt | null): FormValues {
     objektnummer: o?.objektnummer ?? '',
     typ: o?.typ ?? '',
     hyresgast: o?.hyresgast ?? '',
+    faktureringsadress: o?.faktureringsadress ?? '',
     area_kvm: o ? String(o.area_kvm) : '0',
     kr_per_kvm: o ? String(o.kr_per_kvm) : '0',
     hyra_ar: o ? String(o.hyra_ar) : '0',
@@ -85,6 +87,7 @@ export function ObjektFormModal({
       objektnummer: values.objektnummer,
       typ: values.typ,
       hyresgast: values.hyresgast || null,
+      faktureringsadress: values.faktureringsadress || null,
       area_kvm: Number(values.area_kvm) || 0,
       kr_per_kvm: Number(values.kr_per_kvm) || 0,
       hyra_ar: Number(values.hyra_ar) || 0,
@@ -150,6 +153,14 @@ export function ObjektFormModal({
               onChange={(e) => set('hyresgast', e.target.value)}
               className="input"
               placeholder="Lämna tomt om vakant"
+            />
+          </Field>
+          <Field label="Faktureringsadress (postadress)" full>
+            <input
+              value={values.faktureringsadress}
+              onChange={(e) => set('faktureringsadress', e.target.value)}
+              className="input"
+              placeholder="Gata, postnummer och ort dit fakturan ska postas"
             />
           </Field>
           <Field label="Gata">

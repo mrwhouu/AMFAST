@@ -8,6 +8,7 @@ const NAVY_DEEP = '#122437'
 const MUTED = '#6b7386'
 const LINE = '#dce1e8'
 const INK = '#16233f'
+const WINE = '#8e2a3b'
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 10, color: INK, fontFamily: 'Helvetica' },
@@ -77,7 +78,9 @@ export function FakturaPdfSida({
 
   const titel =
     faktura.typ === 'kreditfaktura' ? 'Kreditfaktura' : faktura.typ === 'paminnelse' ? 'Påminnelsefaktura' : 'Hyresfaktura'
-  const objektGata = faktura.objekt_id ? objektById[faktura.objekt_id]?.gata : null
+  const objektForFaktura = faktura.objekt_id ? objektById[faktura.objekt_id] : null
+  const objektGata = objektForFaktura?.gata ?? null
+  const faktureringsadress = objektForFaktura?.faktureringsadress ?? null
 
   return (
     <Page size="A4" style={styles.page}>
@@ -111,6 +114,13 @@ export function FakturaPdfSida({
       <View style={styles.section}>
         <Text style={styles.label}>Faktureringsadress</Text>
         <Text style={{ fontFamily: 'Helvetica-Bold' }}>{faktura.hyresgast}</Text>
+        {faktureringsadress ? (
+          <Text style={{ color: MUTED }}>{faktureringsadress}</Text>
+        ) : (
+          <Text style={{ fontSize: 8.5, fontStyle: 'italic', color: WINE }}>
+            Ingen faktureringsadress angiven — kan ej postas
+          </Text>
+        )}
         {faktura.objektnummer && <Text style={{ fontFamily: 'Courier', fontSize: 8.5, color: MUTED }}>Objekt {faktura.objektnummer}</Text>}
       </View>
 
