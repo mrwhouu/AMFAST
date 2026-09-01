@@ -10,8 +10,21 @@ const LINE = '#dce1e8'
 const INK = '#16233f'
 const WINE = '#8e2a3b'
 
+// Fönsterkuvert (DIN 5008-standard): fönstret sitter 45–92mm från papprets
+// överkant och 20mm från vänsterkanten. Sidan har därför ingen egen padding
+// — innehållet ovanför/under fönstret hanteras av topContent/bottomContent,
+// och adressen läggs som ett eget, absolut positionerat block exakt i
+// fönsterzonen, oberoende av hur mycket text som finns ovanför.
+const WINDOW_TOP = '45mm'
+const WINDOW_LEFT = '20mm'
+const WINDOW_WIDTH = '85mm'
+const CONTENT_SIDE_PADDING = 40
+
 const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 10, color: INK, fontFamily: 'Helvetica' },
+  page: { padding: 0, fontSize: 10, color: INK, fontFamily: 'Helvetica' },
+  topContent: { paddingTop: 32, paddingHorizontal: CONTENT_SIDE_PADDING },
+  bottomContent: { marginTop: '68mm', paddingHorizontal: CONTENT_SIDE_PADDING, paddingBottom: 40 },
+  windowAddress: { position: 'absolute', top: WINDOW_TOP, left: WINDOW_LEFT, width: WINDOW_WIDTH },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderBottomColor: LINE, paddingBottom: 12, marginBottom: 16 },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   logoText: { fontFamily: 'Helvetica-Bold', fontSize: 16, color: NAVY_DEEP },
@@ -84,35 +97,15 @@ export function FakturaPdfSida({
 
   return (
     <Page size="A4" style={styles.page}>
-      <View style={styles.headerRow}>
-        <AmfastLogoPdf />
-        <Text style={styles.titleText}>{titel}</Text>
-      </View>
-
-      <View style={styles.twoCol}>
-        <View>
-          <Text style={styles.label}>Fastighetsbeteckning och adress</Text>
-          <Text>{fastighet.namn}</Text>
-          {objektGata && <Text style={{ color: MUTED }}>{objektGata}</Text>}
-        </View>
-        <View>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Fakturanr</Text>
-            <Text style={styles.metaValue}>{faktura.fakturanummer}</Text>
-          </View>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Period</Text>
-            <Text style={styles.metaValue}>{faktura.period}</Text>
-          </View>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>Förfallodatum</Text>
-            <Text style={styles.metaValue}>{faktura.forfallodatum}</Text>
-          </View>
+      <View style={styles.topContent}>
+        <View style={styles.headerRow}>
+          <AmfastLogoPdf />
+          <Text style={styles.titleText}>{titel}</Text>
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.label}>Faktureringsadress</Text>
+      {/* Mottagaradress i fönsterkuvertets fönster — se WINDOW_*-konstanterna ovan. */}
+      <View style={styles.windowAddress}>
         <Text style={{ fontFamily: 'Helvetica-Bold' }}>{faktura.hyresgast}</Text>
         {faktureringsadress ? (
           <Text style={{ color: MUTED }}>{faktureringsadress}</Text>
@@ -121,63 +114,93 @@ export function FakturaPdfSida({
             Ingen faktureringsadress angiven — kan ej postas
           </Text>
         )}
-        {faktura.objektnummer && <Text style={{ fontFamily: 'Courier', fontSize: 8.5, color: MUTED }}>Objekt {faktura.objektnummer}</Text>}
       </View>
 
-      <View>
-        <View style={styles.tableHeaderRow}>
-          <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Specifikation</Text>
-          <Text style={[styles.tableHeaderCell, { width: 90, textAlign: 'right' }]}>Belopp</Text>
-        </View>
-        {rader.map((r) => (
-          <View style={styles.row} key={r.id}>
-            <Text style={styles.cellDesc}>{r.beskrivning}</Text>
-            <Text style={styles.cellAmount}>{fmt(r.belopp)}</Text>
+      <View style={styles.bottomContent}>
+        <View style={styles.twoCol}>
+          <View>
+            <Text style={styles.label}>Fastighetsbeteckning och adress</Text>
+            <Text>{fastighet.namn}</Text>
+            {objektGata && <Text style={{ color: MUTED }}>{objektGata}</Text>}
           </View>
-        ))}
-      </View>
-
-      <View style={styles.totalsBlock}>
-        <View style={styles.totalsRow}>
-          <Text style={styles.totalsLabel}>Totalt (exkl. moms)</Text>
-          <Text style={styles.totalsValue}>{fmt(totaltExklMoms)}</Text>
-        </View>
-        {momspliktigtBelopp > 0 && (
-          <>
-            <View style={styles.totalsRow}>
-              <Text style={styles.totalsLabel}>Momspliktigt belopp</Text>
-              <Text style={styles.totalsValue}>{fmt(momspliktigtBelopp)}</Text>
+          <View>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Fakturanr</Text>
+              <Text style={styles.metaValue}>{faktura.fakturanummer}</Text>
             </View>
-            <View style={styles.totalsRow}>
-              <Text style={styles.totalsLabel}>Moms (25%)</Text>
-              <Text style={styles.totalsValue}>{fmt(moms)}</Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Period</Text>
+              <Text style={styles.metaValue}>{faktura.period}</Text>
             </View>
-          </>
-        )}
-        <View style={styles.sumRow}>
-          <Text style={styles.sumLabel}>{totaltInklMoms < 0 ? 'Att kreditera' : 'Summa att betala'}</Text>
-          <Text style={styles.sumValue}>{fmt(totaltInklMoms)}</Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Förfallodatum</Text>
+              <Text style={styles.metaValue}>{faktura.forfallodatum}</Text>
+            </View>
+          </View>
         </View>
-      </View>
 
-      {faktura.anmarkning && <Text style={styles.note}>{faktura.anmarkning}</Text>}
+        <View style={styles.section}>
+          <Text style={styles.label}>Faktureringsadress</Text>
+          <Text style={{ fontFamily: 'Helvetica-Bold' }}>{faktura.hyresgast}</Text>
+          {faktureringsadress && <Text style={{ color: MUTED }}>{faktureringsadress}</Text>}
+          {faktura.objektnummer && <Text style={{ fontFamily: 'Courier', fontSize: 8.5, color: MUTED }}>Objekt {faktura.objektnummer}</Text>}
+        </View>
 
-      <View style={styles.footer}>
-        <View style={styles.footerCol}>
-          <Text>{fastighet.agare ?? AMFAST_NAMN}</Text>
-          {fastighet.avsandare_adress && <Text>{fastighet.avsandare_adress}</Text>}
+        <View>
+          <View style={styles.tableHeaderRow}>
+            <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Specifikation</Text>
+            <Text style={[styles.tableHeaderCell, { width: 90, textAlign: 'right' }]}>Belopp</Text>
+          </View>
+          {rader.map((r) => (
+            <View style={styles.row} key={r.id}>
+              <Text style={styles.cellDesc}>{r.beskrivning}</Text>
+              <Text style={styles.cellAmount}>{fmt(r.belopp)}</Text>
+            </View>
+          ))}
         </View>
-        <View style={styles.footerCol}>
-          {fastighet.telefon && <Text>Telefon: {fastighet.telefon}</Text>}
-          {fastighet.epost && <Text>E-post: {fastighet.epost}</Text>}
+
+        <View style={styles.totalsBlock}>
+          <View style={styles.totalsRow}>
+            <Text style={styles.totalsLabel}>Totalt (exkl. moms)</Text>
+            <Text style={styles.totalsValue}>{fmt(totaltExklMoms)}</Text>
+          </View>
+          {momspliktigtBelopp > 0 && (
+            <>
+              <View style={styles.totalsRow}>
+                <Text style={styles.totalsLabel}>Momspliktigt belopp</Text>
+                <Text style={styles.totalsValue}>{fmt(momspliktigtBelopp)}</Text>
+              </View>
+              <View style={styles.totalsRow}>
+                <Text style={styles.totalsLabel}>Moms (25%)</Text>
+                <Text style={styles.totalsValue}>{fmt(moms)}</Text>
+              </View>
+            </>
+          )}
+          <View style={styles.sumRow}>
+            <Text style={styles.sumLabel}>{totaltInklMoms < 0 ? 'Att kreditera' : 'Summa att betala'}</Text>
+            <Text style={styles.sumValue}>{fmt(totaltInklMoms)}</Text>
+          </View>
         </View>
-        <View style={styles.footerCol}>
-          {fastighet.organisationsnummer && <Text>Org.nr: {fastighet.organisationsnummer}</Text>}
-          {fastighet.momsregnr && <Text>Momsreg.nr: {fastighet.momsregnr}</Text>}
-        </View>
-        <View style={styles.footerCol}>
-          <Text>Bankgiro: {fastighet.bankgiro ?? '(anges senare)'}</Text>
-          <Text>Ange fakturanummer vid betalning</Text>
+
+        {faktura.anmarkning && <Text style={styles.note}>{faktura.anmarkning}</Text>}
+
+        <View style={styles.footer}>
+          <View style={styles.footerCol}>
+            <Text>{fastighet.agare ?? AMFAST_NAMN}</Text>
+            {fastighet.avsandare_adress && <Text>{fastighet.avsandare_adress}</Text>}
+          </View>
+          <View style={styles.footerCol}>
+            {fastighet.telefon && <Text>Telefon: {fastighet.telefon}</Text>}
+            {fastighet.epost && <Text>E-post: {fastighet.epost}</Text>}
+          </View>
+          <View style={styles.footerCol}>
+            {fastighet.organisationsnummer && <Text>Org.nr: {fastighet.organisationsnummer}</Text>}
+            {fastighet.momsregnr && <Text>Momsreg.nr: {fastighet.momsregnr}</Text>}
+          </View>
+          <View style={styles.footerCol}>
+            <Text>Bankgiro: {fastighet.bankgiro ?? '(anges senare)'}</Text>
+            <Text>Ange fakturanummer vid betalning</Text>
+          </View>
         </View>
       </View>
     </Page>
