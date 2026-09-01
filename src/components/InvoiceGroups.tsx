@@ -206,6 +206,16 @@ export function InvoiceGroups({
             {new Date(datumFilter).toLocaleDateString('sv-SE')}
           </span>
         )}
+        {datumFilter && synligaFakturor.length > 0 && (
+          <Link
+            to={`/fakturor/skriv-ut?ids=${synligaFakturor.map((f) => f.id).join(',')}`}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-full bg-navy px-3 py-1 text-[12px] font-semibold text-white hover:bg-navy-deep"
+          >
+            Ladda ner alla dessa som PDF →
+          </Link>
+        )}
       </div>
       {groups.length === 0 && datumFilter && (
         <div className="rounded-card border border-line bg-surface px-5 py-6 text-center text-[12.5px] italic text-muted shadow-card">
