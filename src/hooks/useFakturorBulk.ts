@@ -28,7 +28,7 @@ export function useFakturorBulk(idsKey: string) {
     async function run() {
       const [fakturorResult, raderResult] = await Promise.all([
         supabase.from('fakturor').select('*').in('id', ids),
-        supabase.from('faktura_rader').select('*').in('faktura_id', ids),
+        supabase.from('faktura_rader').select('*').in('faktura_id', ids).order('skapad_at'),
       ])
       if (!active) return
       if (fakturorResult.error || raderResult.error) {

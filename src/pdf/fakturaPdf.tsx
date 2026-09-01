@@ -3,6 +3,8 @@ import type { Style } from '@react-pdf/types'
 import { supabase } from '../lib/supabaseClient'
 import type { Faktura, FakturaRad, Fastighet, Objekt } from '../types'
 import { fmt } from '../utils/format'
+import { toIsoDate } from '../utils/avisering'
+import { erReferensRader } from '../utils/fakturaVisning'
 
 const AMFAST_NAMN = 'AM Fastighetsförvaltning AB'
 const NAVY_DEEP = '#122437'
@@ -35,43 +37,44 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 2, gap: 6 },
   metaLabel: { fontSize: 9, color: MUTED },
   metaValue: { fontSize: 9, fontFamily: 'Courier-Bold' },
-  section: { marginBottom: 14 },
-  tableHeaderRow: { flexDirection: 'row', borderBottom: 1.5, borderBottomColor: INK, paddingBottom: 4, marginBottom: 2 },
+  section: { marginBottom: 10 },
+  tableHeaderRow: { flexDirection: 'row', borderBottom: 1.5, borderBottomColor: INK, paddingBottom: 3, marginBottom: 1 },
   tableHeaderCell: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: MUTED, textTransform: 'uppercase', letterSpacing: 0.5 },
-  row: { flexDirection: 'row', borderBottom: 0.5, borderBottomColor: LINE, paddingVertical: 4 },
+  row: { flexDirection: 'row', borderBottom: 0.5, borderBottomColor: LINE, paddingVertical: 3 },
+  cellObjekt: { width: 55, fontSize: 8.5, fontFamily: 'Courier', color: MUTED },
+  cellTyp: { width: 65, fontSize: 8.5, color: MUTED },
   cellDesc: { flex: 1, fontSize: 9.5 },
+  cellDescNotering: { flex: 1, fontSize: 8.5, fontStyle: 'italic', color: MUTED },
   cellAmount: { width: 90, fontSize: 9.5, fontFamily: 'Courier', textAlign: 'right' },
-  totalsBlock: { alignSelf: 'flex-end', marginTop: 10, width: 220 },
-  totalsRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
+  totalsBlock: { alignSelf: 'flex-end', marginTop: 8, width: 220 },
+  totalsRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 1.5 },
   totalsLabel: { fontSize: 9.5, color: MUTED },
   totalsValue: { fontSize: 9.5, fontFamily: 'Courier' },
-  sumRow: { flexDirection: 'row', justifyContent: 'space-between', borderTop: 1, borderTopColor: INK, paddingTop: 4, marginTop: 2 },
+  sumRow: { flexDirection: 'row', justifyContent: 'space-between', borderTop: 1, borderTopColor: INK, paddingTop: 3, marginTop: 2 },
   sumLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold' },
   sumValue: { fontSize: 11, fontFamily: 'Courier-Bold' },
-  note: { marginTop: 14, backgroundColor: '#f5f6f9', padding: 8, borderRadius: 4, fontSize: 9, color: '#3c4a68' },
-  footer: { marginTop: 30, borderTop: 1.5, borderTopColor: INK, paddingTop: 10 },
-  footerTopRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  footerLabel: { fontSize: 8, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.4 },
-  footerSenderCol: { fontSize: 8, color: MUTED, lineHeight: 1.5, maxWidth: '60%' },
-  footerVatCol: { fontSize: 8, color: MUTED, lineHeight: 1.5, textAlign: 'right' },
+  note: { marginTop: 10, backgroundColor: '#f5f6f9', padding: 6, borderRadius: 4, fontSize: 9, color: '#3c4a68' },
+  footer: { marginTop: 18, borderTop: 1.5, borderTopColor: INK, paddingTop: 8 },
+  footerCols: { flexDirection: 'row', justifyContent: 'space-between' },
+  footerCol: { fontSize: 8, color: MUTED, lineHeight: 1.4, maxWidth: '26%' },
+  footerLabel: { fontSize: 8, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
   payBox: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginTop: 12,
-    padding: 10,
+    marginTop: 8,
+    padding: 8,
     backgroundColor: '#f5f6f9',
     borderRadius: 4,
   },
-  payBoxRow: { flexDirection: 'row', marginBottom: 2 },
+  payBoxTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 },
+  payBoxSenderCol: { fontSize: 8, color: MUTED, lineHeight: 1.3, maxWidth: '38%' },
+  payBoxRow: { flexDirection: 'row', marginBottom: 1.5 },
   payBoxLabel: { fontSize: 8, color: MUTED, width: 90 },
   payBoxValue: { fontSize: 8.5, fontFamily: 'Courier-Bold' },
   refBox: {
-    marginTop: 4,
+    marginTop: 3,
     borderWidth: 1.5,
     borderColor: INK,
     borderRadius: 2,
-    paddingVertical: 6,
+    paddingVertical: 5,
     paddingHorizontal: 10,
   },
   refValue: { fontSize: 13, fontFamily: 'Courier-Bold' },
@@ -80,8 +83,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderTop: 1,
     borderTopColor: LINE,
-    paddingTop: 8,
-    marginTop: 10,
+    paddingTop: 6,
+    marginTop: 6,
   },
   bottomRowText: { fontSize: 8.5 },
   footerNote: { marginTop: 6, fontSize: 7.5, fontStyle: 'italic', color: MUTED },
@@ -141,6 +144,7 @@ export function FakturaPdfSida({
   const objektForFaktura = faktura.objekt_id ? objektById[faktura.objekt_id] : null
   const objektGata = objektForFaktura?.gata ?? null
   const faktureringsadress = objektForFaktura?.faktureringsadress ?? null
+  const referensRader = erReferensRader(faktureringsadress)
 
   return (
     <Page size="A4" style={styles.page}>
@@ -176,7 +180,11 @@ export function FakturaPdfSida({
               <Text style={styles.metaValue}>{faktura.fakturanummer}</Text>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Period</Text>
+              <Text style={styles.metaLabel}>Datum</Text>
+              <Text style={styles.metaValue}>{toIsoDate(new Date(faktura.created_at))}</Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>Hyresperiod</Text>
               <Text style={styles.metaValue}>{faktura.period}</Text>
             </View>
             <View style={styles.metaRow}>
@@ -193,17 +201,33 @@ export function FakturaPdfSida({
           {faktura.objektnummer && <Text style={{ fontFamily: 'Courier', fontSize: 8.5, color: MUTED }}>Objekt {faktura.objektnummer}</Text>}
         </View>
 
+        {referensRader.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.label}>Er referens</Text>
+            <AddressLines text={referensRader.join('\n')} style={{ fontFamily: 'Courier' }} />
+          </View>
+        )}
+
         <View>
           <View style={styles.tableHeaderRow}>
+            <Text style={[styles.tableHeaderCell, styles.cellObjekt]}>Objekt</Text>
+            <Text style={[styles.tableHeaderCell, styles.cellTyp]}>Typ</Text>
             <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Specifikation</Text>
             <Text style={[styles.tableHeaderCell, { width: 90, textAlign: 'right' }]}>Belopp</Text>
           </View>
-          {rader.map((r) => (
-            <View style={styles.row} key={r.id}>
-              <Text style={styles.cellDesc}>{r.beskrivning}</Text>
-              <Text style={styles.cellAmount}>{fmt(r.belopp)}</Text>
-            </View>
-          ))}
+          {rader.map((r, i) => {
+            const forstaRadForObjekt = rader.findIndex((x) => x.objekt_id === r.objekt_id) === i
+            const objektInfo = r.objekt_id ? objektById[r.objekt_id] : null
+            const arNotering = r.typ === 'index'
+            return (
+              <View style={styles.row} key={r.id}>
+                <Text style={styles.cellObjekt}>{forstaRadForObjekt ? objektInfo?.objektnummer : ''}</Text>
+                <Text style={styles.cellTyp}>{forstaRadForObjekt ? objektInfo?.typ : ''}</Text>
+                <Text style={arNotering ? styles.cellDescNotering : styles.cellDesc}>{r.beskrivning}</Text>
+                <Text style={styles.cellAmount}>{arNotering ? '' : fmt(r.belopp)}</Text>
+              </View>
+            )
+          })}
         </View>
 
         <View style={styles.totalsBlock}>
@@ -229,63 +253,82 @@ export function FakturaPdfSida({
           </View>
         </View>
 
-        {faktura.anmarkning && <Text style={styles.note}>{faktura.anmarkning}</Text>}
+        {faktura.anmarkning && (
+          <View>
+            <Text style={styles.label}>Meddelande</Text>
+            <Text style={styles.note}>{faktura.anmarkning}</Text>
+          </View>
+        )}
 
         <View style={styles.footer}>
-          <View style={styles.footerTopRow}>
-            <View style={styles.footerSenderCol}>
-              <Text style={styles.footerLabel}>Betalningsavsändare</Text>
-              <Text style={{ color: INK, marginTop: 2 }}>{fastighet.agare ?? AMFAST_NAMN}</Text>
-              {fastighet.avsandare_adress && <Text>{fastighet.avsandare_adress}</Text>}
-              {fastighet.telefon && <Text>Telefon: {fastighet.telefon}</Text>}
-              {fastighet.epost && <Text>E-post: {fastighet.epost}</Text>}
+          <View style={styles.footerCols}>
+            <View style={styles.footerCol}>
+              <Text style={{ color: INK }}>{fastighet.agare ?? AMFAST_NAMN}</Text>
+              {fastighet.avsandare_adress && <AddressLines text={fastighet.avsandare_adress} />}
             </View>
-            <View style={styles.footerVatCol}>
+            <View style={styles.footerCol}>
+              <Text style={styles.footerLabel}>Telefon/E-post</Text>
+              {fastighet.telefon && <Text>{fastighet.telefon}</Text>}
+              {fastighet.epost && <Text>{fastighet.epost}</Text>}
+            </View>
+            <View style={styles.footerCol}>
               <Text style={styles.footerLabel}>Momsreg.nr</Text>
               <Text style={{ color: INK, marginBottom: 4 }}>{fastighet.momsregnr ?? '—'}</Text>
               <Text style={styles.footerLabel}>Org.nr</Text>
               <Text style={{ color: INK }}>{fastighet.organisationsnummer ?? '—'}</Text>
             </View>
+            <View style={styles.footerCol}>
+              <Text style={styles.footerLabel}>Bankgiro</Text>
+              <Text style={{ color: INK }}>{fastighet.bankgiro ?? '(anges senare)'}</Text>
+            </View>
           </View>
 
-          <View style={styles.payBox}>
-            <View>
-              <View style={styles.payBoxRow}>
-                <Text style={styles.payBoxLabel}>Fakturanummer</Text>
-                <Text style={styles.payBoxValue}>{faktura.fakturanummer}</Text>
+          <View style={styles.payBox} wrap={false}>
+            <Text style={[styles.footerLabel, { marginBottom: 6 }]}>Inbetalning</Text>
+            <View style={styles.payBoxTop}>
+              <View style={styles.payBoxSenderCol}>
+                <Text style={styles.footerLabel}>Betalningsavsändare</Text>
+                <Text style={{ fontFamily: 'Helvetica-Bold', color: INK }}>{faktura.hyresgast}</Text>
+                {faktureringsadress && <AddressLines text={faktureringsadress} />}
               </View>
-              <View style={styles.payBoxRow}>
-                <Text style={styles.payBoxLabel}>Förfallodatum</Text>
-                <Text style={styles.payBoxValue}>{faktura.forfallodatum}</Text>
-              </View>
-              {faktura.objektnummer && (
+              <View>
                 <View style={styles.payBoxRow}>
-                  <Text style={styles.payBoxLabel}>Objektnummer</Text>
-                  <Text style={styles.payBoxValue}>{faktura.objektnummer}</Text>
+                  <Text style={styles.payBoxLabel}>Fakturanummer</Text>
+                  <Text style={styles.payBoxValue}>{faktura.fakturanummer}</Text>
                 </View>
-              )}
-              <View style={styles.payBoxRow}>
-                <Text style={styles.payBoxLabel}>Period</Text>
-                <Text style={styles.payBoxValue}>{faktura.period}</Text>
+                <View style={styles.payBoxRow}>
+                  <Text style={styles.payBoxLabel}>Förfallodatum</Text>
+                  <Text style={styles.payBoxValue}>{faktura.forfallodatum}</Text>
+                </View>
+                {faktura.objektnummer && (
+                  <View style={styles.payBoxRow}>
+                    <Text style={styles.payBoxLabel}>Objektnummer</Text>
+                    <Text style={styles.payBoxValue}>{faktura.objektnummer}</Text>
+                  </View>
+                )}
+                <View style={styles.payBoxRow}>
+                  <Text style={styles.payBoxLabel}>Hyresperiod</Text>
+                  <Text style={styles.payBoxValue}>{faktura.period}</Text>
+                </View>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={styles.footerLabel}>Referens vid betalning</Text>
+                <View style={styles.refBox}>
+                  <Text style={styles.refValue}>{faktura.fakturanummer}</Text>
+                </View>
               </View>
             </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={styles.footerLabel}>Referens vid betalning</Text>
-              <View style={styles.refBox}>
-                <Text style={styles.refValue}>{faktura.fakturanummer}</Text>
-              </View>
-            </View>
-          </View>
 
-          <View style={styles.bottomRow}>
-            <Text style={styles.bottomRowText}>
-              <Text style={{ color: MUTED }}>Till bankgironr </Text>
-              <Text style={{ fontFamily: 'Courier-Bold' }}>{fastighet.bankgiro ?? '(anges senare)'}</Text>
-            </Text>
-            <Text style={styles.bottomRowText}>
-              <Text style={{ color: MUTED }}>Betalningsmottagare </Text>
-              <Text style={{ fontFamily: 'Helvetica-Bold' }}>{fastighet.agare ?? AMFAST_NAMN}</Text>
-            </Text>
+            <View style={styles.bottomRow}>
+              <Text style={styles.bottomRowText}>
+                <Text style={{ color: MUTED }}>Till bankgironr </Text>
+                <Text style={{ fontFamily: 'Courier-Bold' }}>{fastighet.bankgiro ?? '(anges senare)'}</Text>
+              </Text>
+              <Text style={styles.bottomRowText}>
+                <Text style={{ color: MUTED }}>Betalningsmottagare </Text>
+                <Text style={{ fontFamily: 'Helvetica-Bold' }}>{fastighet.agare ?? AMFAST_NAMN}</Text>
+              </Text>
+            </View>
           </View>
 
           <Text style={styles.footerNote}>Ange alltid fakturanumret som referens vid betalning.</Text>

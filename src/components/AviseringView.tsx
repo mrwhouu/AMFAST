@@ -27,6 +27,51 @@ interface Rad {
 
 const AR_NU = new Date().getFullYear()
 
+/** "Hyra lager" för förråd/lager, annars "Hyra lokal" — matchar hur de riktiga Savills-fakturorna benämner hyresraden. */
+function hyraBeskrivning(o: Objekt): string {
+  return /lager|förråd|forrad/i.test(o.typ) ? 'Hyra lager' : 'Hyra lokal'
+}
+
+/**
+ * Bryter upp ett objekts periodbelopp i separata rader — Hyra/Fastighetsskatt/Övrigt
+ * (+ ev. "Varav X kr är indextillägg"-notering under hyresraden) — precis som
+ * specifikationen i de riktiga historiska Savills-fakturorna alltid varit uppbyggd.
+ * Om användaren redigerat totalbeloppet i förhandsgranskningen skalas komponenterna
+ * proportionellt så delsummorna fortfarande summerar till det redigerade beloppet.
+ */
+function byggRadposter(
+  o: Objekt,
+  redigeratBelopp: number,
+  perioder: number,
+  drifttillaggSumma: number,
+): { beskrivning: string; belopp: number; typ: FakturaRad['typ'] }[] {
+  const hyraPerAr = o.hyra_ar
+  const skattPerAr = o.fastighetsskatt_ar
+  const ovrigtPerAr = o.ovrigt_ar + drifttillaggSumma
+  const totalPerAr = hyraPerAr + skattPerAr + ovrigtPerAr
+  const skala = totalPerAr > 0 ? redigeratBelopp / (totalPerAr / perioder) : 1
+
+  const hyraBelopp = Math.round((hyraPerAr / perioder) * skala)
+  const skattBelopp = Math.round((skattPerAr / perioder) * skala)
+  const ovrigtBelopp = Math.round((ovrigtPerAr / perioder) * skala)
+
+  const poster: { beskrivning: string; belopp: number; typ: FakturaRad['typ'] }[] = [
+    { beskrivning: hyraBeskrivning(o), belopp: hyraBelopp, typ: 'hyra' },
+  ]
+
+  if (o.indexklausul && o.bas_hyra_ar != null && hyraPerAr > o.bas_hyra_ar) {
+    const indexBelopp = Math.round(((hyraPerAr - o.bas_hyra_ar) / perioder) * skala)
+    if (indexBelopp > 0) {
+      poster.push({ beskrivning: `Varav ${fmt(indexBelopp)} kr är indextillägg`, belopp: 0, typ: 'index' })
+    }
+  }
+
+  if (skattBelopp > 0) poster.push({ beskrivning: 'Fastighetsskatt', belopp: skattBelopp, typ: 'ovrigt' })
+  if (ovrigtBelopp > 0) poster.push({ beskrivning: 'Övrigt', belopp: ovrigtBelopp, typ: 'ovrigt' })
+
+  return poster
+}
+
 function slugifyFilnamn(namn: string) {
   return namn
     .toLowerCase()
@@ -150,8 +195,8 @@ export function AviseringView({
     const pdfEntriesByAgare = new Map<string, FakturaPdfEntry[]>()
     const objektById: Record<string, Objekt> = {}
     const periodLabel = periodString(ar, typ, varde)
-    const periodLabelText = periodRange(ar, typ, varde).label
     const periodManader = periodManaderLabel(ar, typ, varde)
+    const perioder = typ === 'manad' ? 12 : 4
 
     for (const gruppRader of grupper.values()) {
       // Primärt objekt (störst belopp) avgör fakturanummer/objektnummer-fältet,
@@ -191,31 +236,39 @@ export function AviseringView({
       const fakturaRader: FakturaRad[] = []
       for (const r of gruppRader) {
         const radBelopp = Number(r.belopp) || 0
-        const radBeskrivning = gruppRader.length > 1 ? `Hyra ${periodLabelText} – ${r.objekt.objektnummer}` : `Hyra ${periodLabelText}`
-        const { error: radError } = await supabase.from('faktura_rader').insert({
-          faktura_id: data.id,
-          objekt_id: r.objekt.id,
-          beskrivning: radBeskrivning,
-          antal: 1,
-          a_pris: radBelopp,
-          belopp: radBelopp,
-          typ: 'hyra',
-        })
-        if (radError) {
-          fel.push(`${primar.objekt.hyresgast} (${r.objekt.objektnummer}): faktura skapad men rad misslyckades — ${radError.message}`)
-          continue
+        const poster = byggRadposter(r.objekt, radBelopp, perioder, drifttillaggSummaByObjekt[r.objekt.id] ?? 0)
+
+        let objektMisslyckades = false
+        for (const post of poster) {
+          // Sekventiella inserts (inte en batch) så att skapad_at ökar i insättningsordning —
+          // avgörande för att raderna sedan hämtas i rätt ordning (Hyra → indextillägg → Fastighetsskatt → Övrigt).
+          const { error: radError } = await supabase.from('faktura_rader').insert({
+            faktura_id: data.id,
+            objekt_id: r.objekt.id,
+            beskrivning: post.beskrivning,
+            antal: 1,
+            a_pris: post.belopp,
+            belopp: post.belopp,
+            typ: post.typ,
+          })
+          if (radError) {
+            fel.push(`${primar.objekt.hyresgast} (${r.objekt.objektnummer}): faktura skapad men rad misslyckades — ${radError.message}`)
+            objektMisslyckades = true
+            break
+          }
+          fakturaRader.push({
+            id: `${data.id}-${r.objekt.id}-${fakturaRader.length}`,
+            faktura_id: data.id,
+            objekt_id: r.objekt.id,
+            beskrivning: post.beskrivning,
+            antal: 1,
+            a_pris: post.belopp,
+            belopp: post.belopp,
+            typ: post.typ,
+            skapad_at: '',
+          })
         }
-        fakturaRader.push({
-          id: `${data.id}-${r.objekt.id}`,
-          faktura_id: data.id,
-          objekt_id: r.objekt.id,
-          beskrivning: radBeskrivning,
-          antal: 1,
-          a_pris: radBelopp,
-          belopp: radBelopp,
-          typ: 'hyra',
-          skapad_at: '',
-        })
+        if (objektMisslyckades) continue
         objektById[r.objekt.id] = r.objekt
       }
       if (fakturaRader.length === 0) continue
