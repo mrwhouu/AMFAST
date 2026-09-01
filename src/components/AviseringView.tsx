@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
-import type { Faktura, Fastighet, Objekt } from '../types'
+import type { Faktura, FakturaRad, Fastighet, Objekt } from '../types'
 import { objektTotalAr } from '../types'
 import { fmt } from '../utils/format'
 import {
@@ -22,7 +22,7 @@ interface Rad {
   forfallodatum: string
   inkluderad: boolean
   redanFakturerad: boolean
-  befintligFakturaId: string | null
+  befintligaFakturaIds: string[]
 }
 
 const AR_NU = new Date().getFullYear()
@@ -79,8 +79,19 @@ export function AviseringView({
     const range = periodRange(ar, typ, varde)
     const perioder = typ === 'manad' ? 12 : 4
     const forfallo = dagenFore(range.start)
-    const periodLabel = periodString(ar, typ, varde)
-    const befintligaFakturorByNyckel = new Map(fakturor.map((f) => [`${f.fastighet_id}::${f.fakturanummer}`, f.id]))
+    const periodManader = periodManaderLabel(ar, typ, varde)
+
+    // Redan-fakturerad kollas per hyresgäst+fastighet+period (inte per objekt),
+    // eftersom flera objekt för samma hyresgäst nu slås ihop till EN faktura —
+    // detta fångar även äldre fakturor som skapades innan ihopslagningen fanns,
+    // då varje objekt fortfarande fick en egen faktura.
+    const befintligaFakturorByGrupp = new Map<string, string[]>()
+    for (const f of fakturor) {
+      const key = `${f.fastighet_id}::${f.hyresgast}::${f.period}`
+      const lista = befintligaFakturorByGrupp.get(key)
+      if (lista) lista.push(f.id)
+      else befintligaFakturorByGrupp.set(key, [f.id])
+    }
 
     const nya = objekt
       .filter((o) => {
@@ -92,8 +103,9 @@ export function AviseringView({
       })
       .map((o) => {
         const total = objektTotalAr(o, drifttillaggSummaByObjekt[o.id] ?? 0)
-        const befintligFakturaId = befintligaFakturorByNyckel.get(`${o.fastighet_id}::${o.objektnummer}-${periodLabel}`) ?? null
-        const redanFakturerad = befintligFakturaId !== null
+        const grupNyckel = `${o.fastighet_id}::${o.hyresgast}::${periodManader}`
+        const befintligaFakturaIds = befintligaFakturorByGrupp.get(grupNyckel) ?? []
+        const redanFakturerad = befintligaFakturaIds.length > 0
         return {
           objekt: o,
           belopp: String(Math.round(total / perioder)),
@@ -101,7 +113,7 @@ export function AviseringView({
           forfallodatum: forfallo,
           inkluderad: !redanFakturerad,
           redanFakturerad,
-          befintligFakturaId,
+          befintligaFakturaIds,
         }
       })
 
@@ -117,7 +129,19 @@ export function AviseringView({
     if (!rader) return
     const attSkicka = rader.filter((r) => r.inkluderad)
     if (attSkicka.length === 0) return
-    if (!confirm(`Skapa ${attSkicka.length} fakturor för ${periodRange(ar, typ, varde).label}?`)) return
+
+    // Slå ihop objekt som tillhör samma hyresgäst i samma fastighet till EN
+    // faktura med flera rader — matchar hur de riktiga fakturorna alltid
+    // varit uppbyggda (en hyresgäst med flera lokaler får en samlad faktura).
+    const grupper = new Map<string, Rad[]>()
+    for (const r of attSkicka) {
+      const key = `${r.objekt.fastighet_id}::${r.objekt.hyresgast}`
+      const lista = grupper.get(key)
+      if (lista) lista.push(r)
+      else grupper.set(key, [r])
+    }
+
+    if (!confirm(`Skapa ${grupper.size} fakturor (för ${attSkicka.length} objekt) för ${periodRange(ar, typ, varde).label}?`)) return
 
     setSending(true)
     let ok = 0
@@ -129,21 +153,26 @@ export function AviseringView({
     const periodLabelText = periodRange(ar, typ, varde).label
     const periodManader = periodManaderLabel(ar, typ, varde)
 
-    for (const r of attSkicka) {
-      const fakturanummer = `${r.objekt.objektnummer}-${periodLabel}`
-      const belopp = Number(r.belopp) || 0
+    for (const gruppRader of grupper.values()) {
+      // Primärt objekt (störst belopp) avgör fakturanummer/objektnummer-fältet,
+      // precis som originalfakturorna alltid utgick från huvudlokalen.
+      const primar = gruppRader.reduce((a, b) => (Number(b.belopp) > Number(a.belopp) ? b : a))
+      const fakturanummer = `${primar.objekt.objektnummer}-${periodLabel}`
+      const belopp = gruppRader.reduce((s, r) => s + (Number(r.belopp) || 0), 0)
+      const anmarkningar = gruppRader.map((r) => r.anmarkning).filter(Boolean)
+
       const { data, error } = await supabase
         .from('fakturor')
         .insert({
-          fastighet_id: r.objekt.fastighet_id,
-          objekt_id: r.objekt.id,
-          objektnummer: r.objekt.objektnummer,
-          hyresgast: r.objekt.hyresgast,
+          fastighet_id: primar.objekt.fastighet_id,
+          objekt_id: primar.objekt.id,
+          objektnummer: primar.objekt.objektnummer,
+          hyresgast: primar.objekt.hyresgast,
           fakturanummer,
           period: periodManader,
-          forfallodatum: r.forfallodatum,
+          forfallodatum: primar.forfallodatum,
           belopp,
-          anmarkning: r.anmarkning || null,
+          anmarkning: anmarkningar.length > 0 ? anmarkningar.join(' / ') : null,
           status: 'skickad',
           skickad_datum: toIsoDate(new Date()),
         })
@@ -153,50 +182,50 @@ export function AviseringView({
       if (error || !data) {
         const meddelande =
           error?.code === '23505'
-            ? 'Faktura för denna period finns redan för det här objektet.'
+            ? 'Faktura för denna period finns redan för den här hyresgästen.'
             : (error?.message ?? 'okänt fel')
-        fel.push(`${r.objekt.objektnummer} (${r.objekt.hyresgast}): ${meddelande}`)
+        fel.push(`${primar.objekt.hyresgast} (${gruppRader.map((r) => r.objekt.objektnummer).join(', ')}): ${meddelande}`)
         continue
       }
 
-      const radBeskrivning = `Hyra ${periodLabelText}`
-      const { error: radError } = await supabase.from('faktura_rader').insert({
-        faktura_id: data.id,
-        objekt_id: r.objekt.id,
-        beskrivning: radBeskrivning,
-        antal: 1,
-        a_pris: belopp,
-        belopp,
-        typ: 'hyra',
-      })
-      if (radError) {
-        fel.push(`${r.objekt.objektnummer} (${r.objekt.hyresgast}): faktura skapad men rad misslyckades — ${radError.message}`)
-        continue
+      const fakturaRader: FakturaRad[] = []
+      for (const r of gruppRader) {
+        const radBelopp = Number(r.belopp) || 0
+        const radBeskrivning = gruppRader.length > 1 ? `Hyra ${periodLabelText} – ${r.objekt.objektnummer}` : `Hyra ${periodLabelText}`
+        const { error: radError } = await supabase.from('faktura_rader').insert({
+          faktura_id: data.id,
+          objekt_id: r.objekt.id,
+          beskrivning: radBeskrivning,
+          antal: 1,
+          a_pris: radBelopp,
+          belopp: radBelopp,
+          typ: 'hyra',
+        })
+        if (radError) {
+          fel.push(`${primar.objekt.hyresgast} (${r.objekt.objektnummer}): faktura skapad men rad misslyckades — ${radError.message}`)
+          continue
+        }
+        fakturaRader.push({
+          id: `${data.id}-${r.objekt.id}`,
+          faktura_id: data.id,
+          objekt_id: r.objekt.id,
+          beskrivning: radBeskrivning,
+          antal: 1,
+          a_pris: radBelopp,
+          belopp: radBelopp,
+          typ: 'hyra',
+          skapad_at: '',
+        })
+        objektById[r.objekt.id] = r.objekt
       }
+      if (fakturaRader.length === 0) continue
 
       ok++
       skapadeIds.push(data.id)
-      objektById[r.objekt.id] = r.objekt
       const fastighetForRad = fastighetById[data.fastighet_id]
       if (fastighetForRad) {
         const grupp = avigruppForFastighet(fastighetForRad)
-        const entry: FakturaPdfEntry = {
-          faktura: data,
-          fastighet: fastighetForRad,
-          rader: [
-            {
-              id: `${data.id}-rad`,
-              faktura_id: data.id,
-              objekt_id: r.objekt.id,
-              beskrivning: radBeskrivning,
-              antal: 1,
-              a_pris: belopp,
-              belopp,
-              typ: 'hyra',
-              skapad_at: '',
-            },
-          ],
-        }
+        const entry: FakturaPdfEntry = { faktura: data, fastighet: fastighetForRad, rader: fakturaRader }
         const lista = pdfEntriesByAgare.get(grupp)
         if (lista) lista.push(entry)
         else pdfEntriesByAgare.set(grupp, [entry])
@@ -337,10 +366,7 @@ export function AviseringView({
                 om listan — ladda ner dem direkt istället:
               </span>
               <Link
-                to={`/fakturor/skriv-ut?ids=${rader
-                  .filter((r) => r.befintligFakturaId)
-                  .map((r) => r.befintligFakturaId)
-                  .join(',')}`}
+                to={`/fakturor/skriv-ut?ids=${[...new Set(rader.filter((r) => r.redanFakturerad).flatMap((r) => r.befintligaFakturaIds))].join(',')}`}
                 target="_blank"
                 rel="noreferrer"
                 className="whitespace-nowrap rounded-full bg-navy px-3 py-1 text-[12px] font-semibold text-white hover:bg-navy-deep"
