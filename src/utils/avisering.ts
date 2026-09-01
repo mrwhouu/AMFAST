@@ -46,13 +46,26 @@ export function avigruppForFastighet(fastighet: { namn: string }): string {
   return DINA_FASTIGHETER.has(fastighet.namn) ? 'Dina Försäkringar' : 'Lindesås Fastigheter AB'
 }
 
+/**
+ * Formaterar ett datum som yyyy-mm-dd utifrån dess LOKALA kalenderdatum.
+ * Medvetet inte `.toISOString()`, som konverterar till UTC och därför visar
+ * fel dag (en dag för tidigt) i alla tidszoner som ligger före UTC, t.ex.
+ * Sverige — lokal midnatt är fortfarande föregående dag i UTC.
+ */
+function formatLocalIsoDate(d: Date): string {
+  const ar = d.getFullYear()
+  const manad = String(d.getMonth() + 1).padStart(2, '0')
+  const dag = String(d.getDate()).padStart(2, '0')
+  return `${ar}-${manad}-${dag}`
+}
+
 /** Sista dagen innan periodens start, som yyyy-mm-dd (hyra betalas i förskott). */
 export function dagenFore(d: Date): string {
   const prev = new Date(d)
   prev.setDate(prev.getDate() - 1)
-  return prev.toISOString().slice(0, 10)
+  return formatLocalIsoDate(prev)
 }
 
 export function toIsoDate(d: Date): string {
-  return d.toISOString().slice(0, 10)
+  return formatLocalIsoDate(d)
 }

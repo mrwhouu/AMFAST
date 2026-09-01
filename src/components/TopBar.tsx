@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { AmfastIcon } from './AmfastLogo'
+import { toIsoDate } from '../utils/avisering'
 
 export function TopBar() {
   const { profile, signOut } = useAuth()
-  const today = new Date().toISOString().slice(0, 10)
+  const today = toIsoDate(new Date())
 
   return (
     <div className="mx-auto flex max-w-[1320px] flex-wrap items-center justify-between gap-3 px-4 py-4 sm:flex-nowrap sm:gap-4 sm:px-6 sm:py-5">
