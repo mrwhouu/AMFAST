@@ -1,4 +1,5 @@
 import { Document, Page, View, Text, StyleSheet, Svg, Path, pdf } from '@react-pdf/renderer'
+import type { Style } from '@react-pdf/types'
 import { supabase } from '../lib/supabaseClient'
 import type { Faktura, FakturaRad, Fastighet, Objekt } from '../types'
 import { fmt } from '../utils/format'
@@ -86,6 +87,18 @@ const styles = StyleSheet.create({
   footerNote: { marginTop: 6, fontSize: 7.5, fontStyle: 'italic', color: MUTED },
 })
 
+function AddressLines({ text, style }: { text: string; style?: Style }) {
+  return (
+    <>
+      {text.split('\n').map((line, i) => (
+        <Text key={i} style={style}>
+          {line}
+        </Text>
+      ))}
+    </>
+  )
+}
+
 function radMoms(rad: FakturaRad, objektById: Record<string, Objekt>): boolean {
   if (!rad.objekt_id) return false
   return objektById[rad.objekt_id]?.momsat ?? false
@@ -142,7 +155,7 @@ export function FakturaPdfSida({
       <View style={styles.windowAddress}>
         <Text style={{ fontFamily: 'Helvetica-Bold' }}>{faktura.hyresgast}</Text>
         {faktureringsadress ? (
-          <Text style={{ color: MUTED }}>{faktureringsadress}</Text>
+          <AddressLines text={faktureringsadress} style={{ color: MUTED }} />
         ) : (
           <Text style={{ fontSize: 8.5, fontStyle: 'italic', color: WINE }}>
             Ingen faktureringsadress angiven — kan ej postas
@@ -176,7 +189,7 @@ export function FakturaPdfSida({
         <View style={styles.section}>
           <Text style={styles.label}>Faktureringsadress</Text>
           <Text style={{ fontFamily: 'Helvetica-Bold' }}>{faktura.hyresgast}</Text>
-          {faktureringsadress && <Text style={{ color: MUTED }}>{faktureringsadress}</Text>}
+          {faktureringsadress && <AddressLines text={faktureringsadress} style={{ color: MUTED }} />}
           {faktura.objektnummer && <Text style={{ fontFamily: 'Courier', fontSize: 8.5, color: MUTED }}>Objekt {faktura.objektnummer}</Text>}
         </View>
 

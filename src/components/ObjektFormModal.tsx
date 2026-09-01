@@ -156,11 +156,12 @@ export function ObjektFormModal({
             />
           </Field>
           <Field label="Faktureringsadress (postadress)" full>
-            <input
+            <textarea
               value={values.faktureringsadress}
               onChange={(e) => set('faktureringsadress', e.target.value)}
               className="input"
-              placeholder="Gata, postnummer och ort dit fakturan ska postas"
+              rows={3}
+              placeholder={'Egen rad per adressrad, t.ex.:\nBox 171\n831 22 Östersund'}
             />
           </Field>
           <Field label="Gata">

@@ -164,11 +164,12 @@ export function NyHyresgastModal({
             <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">
               Faktureringsadress (postadress)
             </span>
-            <input
+            <textarea
               value={values.faktureringsadress}
               onChange={(e) => set('faktureringsadress', e.target.value)}
               className="input"
-              placeholder="Gata, postnummer och ort dit fakturan ska postas"
+              rows={3}
+              placeholder={'Egen rad per adressrad, t.ex.:\nBox 171\n831 22 Östersund'}
             />
           </label>
           <label className="block">
