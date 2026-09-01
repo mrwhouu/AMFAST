@@ -22,6 +22,7 @@ interface Rad {
   forfallodatum: string
   inkluderad: boolean
   redanFakturerad: boolean
+  befintligFakturaId: string | null
 }
 
 const AR_NU = new Date().getFullYear()
@@ -79,7 +80,7 @@ export function AviseringView({
     const perioder = typ === 'manad' ? 12 : 4
     const forfallo = dagenFore(range.start)
     const periodLabel = periodString(ar, typ, varde)
-    const befintligaFakturanummer = new Set(fakturor.map((f) => `${f.fastighet_id}::${f.fakturanummer}`))
+    const befintligaFakturorByNyckel = new Map(fakturor.map((f) => [`${f.fastighet_id}::${f.fakturanummer}`, f.id]))
 
     const nya = objekt
       .filter((o) => {
@@ -91,7 +92,8 @@ export function AviseringView({
       })
       .map((o) => {
         const total = objektTotalAr(o, drifttillaggSummaByObjekt[o.id] ?? 0)
-        const redanFakturerad = befintligaFakturanummer.has(`${o.fastighet_id}::${o.objektnummer}-${periodLabel}`)
+        const befintligFakturaId = befintligaFakturorByNyckel.get(`${o.fastighet_id}::${o.objektnummer}-${periodLabel}`) ?? null
+        const redanFakturerad = befintligFakturaId !== null
         return {
           objekt: o,
           belopp: String(Math.round(total / perioder)),
@@ -99,6 +101,7 @@ export function AviseringView({
           forfallodatum: forfallo,
           inkluderad: !redanFakturerad,
           redanFakturerad,
+          befintligFakturaId,
         }
       })
 
@@ -327,9 +330,23 @@ export function AviseringView({
           </div>
 
           {rader.some((r) => r.redanFakturerad) && (
-            <div className="border-b border-amber-soft bg-amber-soft px-[18px] py-2 text-[12px] text-amber">
-              {rader.filter((r) => r.redanFakturerad).length} objekt har redan en faktura för den här perioden och
-              är avbockade nedan — bocka i manuellt om du ändå vill skapa en till.
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-soft bg-amber-soft px-[18px] py-2 text-[12px] text-amber">
+              <span>
+                {rader.filter((r) => r.redanFakturerad).length} objekt har redan en faktura för den här perioden och
+                är avbockade nedan. Vill du bara ha PDF:erna igen (t.ex. efter att adresser rättats till)? Bygg inte
+                om listan — ladda ner dem direkt istället:
+              </span>
+              <Link
+                to={`/fakturor/skriv-ut?ids=${rader
+                  .filter((r) => r.befintligFakturaId)
+                  .map((r) => r.befintligFakturaId)
+                  .join(',')}`}
+                target="_blank"
+                rel="noreferrer"
+                className="whitespace-nowrap rounded-full bg-navy px-3 py-1 text-[12px] font-semibold text-white hover:bg-navy-deep"
+              >
+                Ladda ner dessa som PDF →
+              </Link>
             </div>
           )}
 
