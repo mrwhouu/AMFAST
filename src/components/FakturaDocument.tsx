@@ -74,7 +74,7 @@ export function FakturaDocument({
         <div className="mb-1 text-[12.5px] font-semibold uppercase tracking-wide text-muted">Faktureringsadress</div>
         <div className="text-[13px] font-medium">{faktura.hyresgast}</div>
         {faktureringsadress ? (
-          <div className="text-muted">{faktureringsadress}</div>
+          <div className="whitespace-pre-line text-muted">{faktureringsadress}</div>
         ) : (
           <div className="text-[11.5px] italic text-wine">Ingen faktureringsadress angiven — kan ej postas</div>
         )}
