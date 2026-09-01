@@ -8,6 +8,7 @@ type FormValues = {
   hyresgast: string
   hyresgast_orgnr: string
   hyresgast_kontakt: string
+  faktureringsadress: string
   area_kvm: string
   kr_per_kvm: string
   hyra_ar: string
@@ -26,6 +27,7 @@ const EMPTY: FormValues = {
   hyresgast: '',
   hyresgast_orgnr: '',
   hyresgast_kontakt: '',
+  faktureringsadress: '',
   area_kvm: '0',
   kr_per_kvm: '0',
   hyra_ar: '0',
@@ -78,6 +80,7 @@ export function NyHyresgastModal({
       hyresgast: values.hyresgast,
       hyresgast_orgnr: values.hyresgast_orgnr || null,
       hyresgast_kontakt: values.hyresgast_kontakt || null,
+      faktureringsadress: values.faktureringsadress || null,
       area_kvm: Number(values.area_kvm) || 0,
       kr_per_kvm: Number(values.kr_per_kvm) || 0,
       hyra_ar: Number(values.hyra_ar) || 0,
@@ -156,6 +159,17 @@ export function NyHyresgastModal({
               Kontaktperson
             </span>
             <input value={values.hyresgast_kontakt} onChange={(e) => set('hyresgast_kontakt', e.target.value)} className="input" />
+          </label>
+          <label className="col-span-2 block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">
+              Faktureringsadress (postadress)
+            </span>
+            <input
+              value={values.faktureringsadress}
+              onChange={(e) => set('faktureringsadress', e.target.value)}
+              className="input"
+              placeholder="Gata, postnummer och ort dit fakturan ska postas"
+            />
           </label>
           <label className="block">
             <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">Typ</span>
