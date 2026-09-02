@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { sleep } from '../utils/sleep'
-import type { Fastighet, Faktura, Objekt, ObjektDrifttillagg } from '../types'
+import type { Fastighet, Faktura, Objekt, ObjektDrifttillagg, Paminnelse } from '../types'
 
 export interface PortfolioData {
   fastigheter: Fastighet[]
   objekt: Objekt[]
   fakturor: Faktura[]
   drifttillagg: ObjektDrifttillagg[]
+  paminnelser: Paminnelse[]
   loading: boolean
   error: string | null
   reload: () => void
@@ -30,6 +31,7 @@ export function usePortfolioData(): PortfolioData {
   const [objekt, setObjekt] = useState<Objekt[]>([])
   const [fakturor, setFakturor] = useState<Faktura[]>([])
   const [drifttillagg, setDrifttillagg] = useState<ObjektDrifttillagg[]>([])
+  const [paminnelser, setPaminnelser] = useState<Paminnelse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
@@ -49,15 +51,16 @@ export function usePortfolioData(): PortfolioData {
           supabase.from('objekt').select('*').order('objektnummer'),
           supabase.from('fakturor').select('*').order('forfallodatum'),
           supabase.from('objekt_drifttillagg').select('*'),
+          supabase.from('paminnelser').select('*').order('paminn_datum', { nullsFirst: false }),
         ])
-        const err = result[0].error || result[1].error || result[2].error || result[3].error
+        const err = result[0].error || result[1].error || result[2].error || result[3].error || result[4].error
         if (!err) break
         if (forsok < FORSOK) await sleep(FORSOK_FORDROJNING_MS * forsok)
       }
       if (!active || !result) return
 
-      const [f, o, i, d] = result
-      const err = f.error || o.error || i.error || d.error
+      const [f, o, i, d, p] = result
+      const err = f.error || o.error || i.error || d.error || p.error
       if (err) {
         setError(err.message)
       } else {
@@ -65,6 +68,7 @@ export function usePortfolioData(): PortfolioData {
         setObjekt(o.data ?? [])
         setFakturor(i.data ?? [])
         setDrifttillagg(d.data ?? [])
+        setPaminnelser(p.data ?? [])
       }
       setLoading(false)
     }
@@ -76,5 +80,5 @@ export function usePortfolioData(): PortfolioData {
     }
   }, [tick])
 
-  return { fastigheter, objekt, fakturor, drifttillagg, loading, error, reload }
+  return { fastigheter, objekt, fakturor, drifttillagg, paminnelser, loading, error, reload }
 }

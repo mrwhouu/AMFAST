@@ -6,6 +6,7 @@ import { Tabs } from '../components/Tabs'
 import { PropertyCard } from '../components/PropertyCard'
 import { SectionLabel } from '../components/SectionLabel'
 import { AlertGrid } from '../components/AlertGrid'
+import { PaminnelserPanel } from '../components/PaminnelserPanel'
 import { FilterBar } from '../components/FilterBar'
 import { ObjectTable } from '../components/ObjectTable'
 import { InvSummary } from '../components/InvSummary'
@@ -26,7 +27,7 @@ const BAS_TABS = [
 const AVISERING_TAB = { key: 'avisering', label: 'Avisering' }
 
 export function DashboardPage() {
-  const { fastigheter, objekt, fakturor, drifttillagg, loading, error, reload } = usePortfolioData()
+  const { fastigheter, objekt, fakturor, drifttillagg, paminnelser, loading, error, reload } = usePortfolioData()
   const { canWrite, hasAnyWrite } = useAccess()
   const [tab, setTab] = useState('oversikt')
   const [filter, setFilter] = useState('alla')
@@ -117,6 +118,13 @@ export function DashboardPage() {
             ))}
           </div>
           <SectionLabel>Kräver uppmärksamhet</SectionLabel>
+          <PaminnelserPanel
+            paminnelser={paminnelser}
+            fastigheter={fastigheter}
+            fastighetNamnById={fastighetNamnById}
+            canWrite={canWrite}
+            onChanged={reload}
+          />
           <AlertGrid data={alerts} canWrite={canWrite} onChanged={reload} />
         </div>
       )}
@@ -153,7 +161,18 @@ export function DashboardPage() {
         </div>
       )}
 
-      {tab === 'atgarder' && <AlertGrid data={alerts} canWrite={canWrite} onChanged={reload} />}
+      {tab === 'atgarder' && (
+        <div>
+          <PaminnelserPanel
+            paminnelser={paminnelser}
+            fastigheter={fastigheter}
+            fastighetNamnById={fastighetNamnById}
+            canWrite={canWrite}
+            onChanged={reload}
+          />
+          <AlertGrid data={alerts} canWrite={canWrite} onChanged={reload} />
+        </div>
+      )}
 
       {tab === 'avisering' && hasAnyWrite && (
         <AviseringView
