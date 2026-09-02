@@ -138,10 +138,12 @@ export function AviseringView({
       else befintligaFakturorByGrupp.set(key, [f.id])
     }
 
+    const kravdIntervall = typ === 'manad' ? 'manadsvis' : 'kvartalsvis'
     const nya = objekt
       .filter((o) => {
         if (o.status !== 'uthyrd' || !canWrite(o.fastighet_id)) return false
         if (!valdaFastigheter.has(o.fastighet_id)) return false
+        if (o.faktureringsintervall !== kravdIntervall) return false
         if (o.kontrakt_fran && new Date(o.kontrakt_fran) > range.end) return false
         if (o.kontrakt_tom && new Date(o.kontrakt_tom) < range.start) return false
         return true
