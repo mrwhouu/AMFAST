@@ -23,6 +23,12 @@ interface Rad {
   inkluderad: boolean
   redanFakturerad: boolean
   befintligaFakturaIds: string[]
+  /** Radens egen period — kan skilja sig från den valda perioden i UI:t när
+   * en kvartalsbyggning bryter ut en månadsvis hyresgäst i tre delfakturor. */
+  periodManader: string
+  periodKort: string
+  periodLabelText: string
+  perioder: number
 }
 
 const AR_NU = new Date().getFullYear()
@@ -121,11 +127,6 @@ export function AviseringView({
   }
 
   function byggLista() {
-    const range = periodRange(ar, typ, varde)
-    const perioder = typ === 'manad' ? 12 : 4
-    const forfallo = dagenFore(range.start)
-    const periodManader = periodManaderLabel(ar, typ, varde)
-
     // Redan-fakturerad kollas per hyresgäst+fastighet+period (inte per objekt),
     // eftersom flera objekt för samma hyresgäst nu slås ihop till EN faktura —
     // detta fångar även äldre fakturor som skapades innan ihopslagningen fanns,
@@ -138,31 +139,59 @@ export function AviseringView({
       else befintligaFakturorByGrupp.set(key, [f.id])
     }
 
-    const kravdIntervall = typ === 'manad' ? 'manadsvis' : 'kvartalsvis'
-    const nya = objekt
-      .filter((o) => {
-        if (o.status !== 'uthyrd' || !canWrite(o.fastighet_id)) return false
-        if (!valdaFastigheter.has(o.fastighet_id)) return false
-        if (o.faktureringsintervall !== kravdIntervall) return false
-        if (o.kontrakt_fran && new Date(o.kontrakt_fran) > range.end) return false
-        if (o.kontrakt_tom && new Date(o.kontrakt_tom) < range.start) return false
-        return true
-      })
-      .map((o) => {
-        const total = objektTotalAr(o, drifttillaggSummaByObjekt[o.id] ?? 0)
-        const grupNyckel = `${o.fastighet_id}::${o.hyresgast}::${periodManader}`
-        const befintligaFakturaIds = befintligaFakturorByGrupp.get(grupNyckel) ?? []
-        const redanFakturerad = befintligaFakturaIds.length > 0
-        return {
-          objekt: o,
-          belopp: String(Math.round(total / perioder)),
-          anmarkning: '',
-          forfallodatum: forfallo,
-          inkluderad: !redanFakturerad,
-          redanFakturerad,
-          befintligaFakturaIds,
+    function radFor(o: Objekt, ar: number, typ: PeriodTyp, varde: number, perioder: number): Rad | null {
+      const range = periodRange(ar, typ, varde)
+      if (o.kontrakt_fran && new Date(o.kontrakt_fran) > range.end) return null
+      if (o.kontrakt_tom && new Date(o.kontrakt_tom) < range.start) return null
+
+      const periodManader = periodManaderLabel(ar, typ, varde)
+      const grupNyckel = `${o.fastighet_id}::${o.hyresgast}::${periodManader}`
+      const befintligaFakturaIds = befintligaFakturorByGrupp.get(grupNyckel) ?? []
+      const redanFakturerad = befintligaFakturaIds.length > 0
+      const total = objektTotalAr(o, drifttillaggSummaByObjekt[o.id] ?? 0)
+
+      return {
+        objekt: o,
+        belopp: String(Math.round(total / perioder)),
+        anmarkning: '',
+        forfallodatum: dagenFore(range.start),
+        inkluderad: !redanFakturerad,
+        redanFakturerad,
+        befintligaFakturaIds,
+        periodManader,
+        periodKort: periodString(ar, typ, varde),
+        periodLabelText: range.label,
+        perioder,
+      }
+    }
+
+    const nya: Rad[] = []
+    for (const o of objekt) {
+      if (o.status !== 'uthyrd' || !canWrite(o.fastighet_id)) continue
+      if (!valdaFastigheter.has(o.fastighet_id)) continue
+
+      if (typ === 'manad') {
+        if (o.faktureringsintervall !== 'manadsvis') continue
+        const rad = radFor(o, ar, 'manad', varde, 12)
+        if (rad) nya.push(rad)
+        continue
+      }
+
+      // typ === 'kvartal'
+      if (o.faktureringsintervall === 'kvartalsvis') {
+        const rad = radFor(o, ar, 'kvartal', varde, 4)
+        if (rad) nya.push(rad)
+      } else if (o.faktureringsintervall === 'manadsvis') {
+        // Månadsvisa hyresgäster faktureras ändå i samma kvartalskörning, men som
+        // TRE separata delfakturor (en per kalendermånad) med var sitt förfallodatum
+        // — så administratören slipper köra "Bygg lista" en gång per månad.
+        const startManad = (varde - 1) * 3 + 1
+        for (let m = startManad; m <= startManad + 2; m++) {
+          const rad = radFor(o, ar, 'manad', m, 12)
+          if (rad) nya.push(rad)
         }
-      })
+      }
+    }
 
     setRader(nya)
     setResultat(null)
@@ -177,18 +206,20 @@ export function AviseringView({
     const attSkicka = rader.filter((r) => r.inkluderad)
     if (attSkicka.length === 0) return
 
-    // Slå ihop objekt som tillhör samma hyresgäst i samma fastighet till EN
-    // faktura med flera rader — matchar hur de riktiga fakturorna alltid
+    // Slå ihop objekt som tillhör samma hyresgäst i samma fastighet OCH period
+    // till EN faktura med flera rader — matchar hur de riktiga fakturorna alltid
     // varit uppbyggda (en hyresgäst med flera lokaler får en samlad faktura).
+    // Perioden är med i nyckeln så att t.ex. tre delfakturor (okt/nov/dec) för
+    // en månadsvis hyresgäst i en kvartalskörning förblir tre separata fakturor.
     const grupper = new Map<string, Rad[]>()
     for (const r of attSkicka) {
-      const key = `${r.objekt.fastighet_id}::${r.objekt.hyresgast}`
+      const key = `${r.objekt.fastighet_id}::${r.objekt.hyresgast}::${r.periodManader}`
       const lista = grupper.get(key)
       if (lista) lista.push(r)
       else grupper.set(key, [r])
     }
 
-    if (!confirm(`Skapa ${grupper.size} fakturor (för ${attSkicka.length} objekt) för ${periodRange(ar, typ, varde).label}?`)) return
+    if (!confirm(`Skapa ${grupper.size} fakturor (för ${attSkicka.length} objekt-perioder) för ${periodRange(ar, typ, varde).label}?`)) return
 
     setSending(true)
     let ok = 0
@@ -197,14 +228,12 @@ export function AviseringView({
     const pdfEntriesByAgare = new Map<string, FakturaPdfEntry[]>()
     const objektById: Record<string, Objekt> = {}
     const periodLabel = periodString(ar, typ, varde)
-    const periodManader = periodManaderLabel(ar, typ, varde)
-    const perioder = typ === 'manad' ? 12 : 4
 
     for (const gruppRader of grupper.values()) {
       // Primärt objekt (störst belopp) avgör fakturanummer/objektnummer-fältet,
       // precis som originalfakturorna alltid utgick från huvudlokalen.
       const primar = gruppRader.reduce((a, b) => (Number(b.belopp) > Number(a.belopp) ? b : a))
-      const fakturanummer = `${primar.objekt.objektnummer}-${periodLabel}`
+      const fakturanummer = `${primar.objekt.objektnummer}-${primar.periodKort}`
       const belopp = gruppRader.reduce((s, r) => s + (Number(r.belopp) || 0), 0)
       const anmarkningar = gruppRader.map((r) => r.anmarkning).filter(Boolean)
 
@@ -216,7 +245,7 @@ export function AviseringView({
           objektnummer: primar.objekt.objektnummer,
           hyresgast: primar.objekt.hyresgast,
           fakturanummer,
-          period: periodManader,
+          period: primar.periodManader,
           forfallodatum: primar.forfallodatum,
           belopp,
           anmarkning: anmarkningar.length > 0 ? anmarkningar.join(' / ') : null,
@@ -238,7 +267,7 @@ export function AviseringView({
       const fakturaRader: FakturaRad[] = []
       for (const r of gruppRader) {
         const radBelopp = Number(r.belopp) || 0
-        const poster = byggRadposter(r.objekt, radBelopp, perioder, drifttillaggSummaByObjekt[r.objekt.id] ?? 0)
+        const poster = byggRadposter(r.objekt, radBelopp, r.perioder, drifttillaggSummaByObjekt[r.objekt.id] ?? 0)
 
         let objektMisslyckades = false
         for (const post of poster) {
@@ -439,7 +468,7 @@ export function AviseringView({
             <div className="overflow-x-auto">
               {rader.map((r, i) => (
                 <div
-                  key={r.objekt.id}
+                  key={`${r.objekt.id}-${r.periodKort}`}
                   className={`grid min-w-[620px] grid-cols-[24px_90px_1fr_120px_140px_100px] items-center gap-2.5 border-b border-line-soft px-[18px] py-2.5 text-[12.5px] last:border-none ${
                     r.inkluderad ? '' : 'opacity-40'
                   }`}
@@ -457,7 +486,9 @@ export function AviseringView({
                         Redan fakturerad
                       </span>
                     )}
-                    <div className="text-[11px] text-muted">{fastighetNamnById[r.objekt.fastighet_id]}</div>
+                    <div className="text-[11px] text-muted">
+                      {fastighetNamnById[r.objekt.fastighet_id]} · {r.periodManader}
+                    </div>
                   </div>
                   <input
                     value={r.anmarkning}
