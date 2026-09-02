@@ -127,6 +127,17 @@ export interface FakturaRad {
   skapad_at: string
 }
 
+export interface Paminnelse {
+  id: string
+  fastighet_id: string
+  objekt_id: string | null
+  text: string
+  paminn_datum: string | null
+  klar: boolean
+  skapad_av: string | null
+  created_at: string
+}
+
 export interface AnvandareFastighet {
   user_id: string
   fastighet_id: string
