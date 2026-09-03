@@ -137,6 +137,9 @@ export function InvoiceGroups({
   const [marking, setMarking] = useState<string | null>(null)
   const [datumFilter, setDatumFilter] = useState('')
   const [mailing, setMailing] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<FakturaStatus | 'alla'>('alla')
+  const [fastighetFilter, setFastighetFilter] = useState('alla')
 
   const fastighetById = Object.fromEntries(fastigheter.map((f) => [f.id, f]))
   const objektById = Object.fromEntries(objekt.map((o) => [o.id, o]))
@@ -194,8 +197,19 @@ export function InvoiceGroups({
     }
   }
 
-  const synligaFakturor = datumFilter ? fakturor.filter((f) => f.skickad_datum === datumFilter) : fakturor
+  const sok = search.trim().toLowerCase()
+  const synligaFakturor = fakturor.filter((f) => {
+    if (datumFilter && f.skickad_datum !== datumFilter) return false
+    if (statusFilter !== 'alla' && f.status !== statusFilter) return false
+    if (fastighetFilter !== 'alla' && fastighetNamnById[f.fastighet_id] !== fastighetFilter) return false
+    if (sok) {
+      const haystack = `${f.hyresgast ?? ''} ${f.fakturanummer} ${f.objektnummer ?? ''} ${f.period}`.toLowerCase()
+      if (!haystack.includes(sok)) return false
+    }
+    return true
+  })
   const groups = groupInvoices(synligaFakturor, fastighetNamnById)
+  const filtreratAktivt = Boolean(datumFilter || sok || statusFilter !== 'alla' || fastighetFilter !== 'alla')
 
   async function markInkasso(fakturaId: string) {
     if (!confirm('Markera denna faktura som skickad till inkasso?')) return
@@ -248,6 +262,50 @@ export function InvoiceGroups({
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2 text-[12.5px]">
+        <div className="relative">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 opacity-40"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <line x1="21" y1="21" x2="16.6" y2="16.6" />
+          </svg>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Sök hyresgäst, fakturanr, objekt, period…"
+            className="w-[240px] rounded-lg border border-line bg-surface py-1.5 pl-[28px] pr-3 text-[12.5px] outline-none focus:border-navy"
+          />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as FakturaStatus | 'alla')}
+          className="input !w-auto py-1"
+        >
+          <option value="alla">Alla statusar</option>
+          {(Object.keys(STATUS_LABEL) as FakturaStatus[]).map((s) => (
+            <option key={s} value={s}>
+              {STATUS_LABEL[s]}
+            </option>
+          ))}
+        </select>
+        <select
+          value={fastighetFilter}
+          onChange={(e) => setFastighetFilter(e.target.value)}
+          className="input !w-auto py-1"
+        >
+          <option value="alla">Alla fastigheter</option>
+          {[...new Set(Object.values(fastighetNamnById))].sort().map((namn) => (
+            <option key={namn} value={namn}>
+              {namn}
+            </option>
+          ))}
+        </select>
         <label className="flex items-center gap-1.5 text-muted">
           Visa skickade
           <input
@@ -257,18 +315,25 @@ export function InvoiceGroups({
             className="input !w-auto py-1"
           />
         </label>
-        {datumFilter && (
-          <button onClick={() => setDatumFilter('')} className="font-semibold text-navy hover:text-gold">
+        {filtreratAktivt && (
+          <button
+            onClick={() => {
+              setDatumFilter('')
+              setSearch('')
+              setStatusFilter('alla')
+              setFastighetFilter('alla')
+            }}
+            className="font-semibold text-navy hover:text-gold"
+          >
             Visa alla
           </button>
         )}
-        {datumFilter && (
+        {filtreratAktivt && (
           <span className="text-muted">
-            {synligaFakturor.length} faktur{synligaFakturor.length === 1 ? 'a' : 'or'} skickade{' '}
-            {new Date(datumFilter).toLocaleDateString('sv-SE')}
+            {synligaFakturor.length} faktur{synligaFakturor.length === 1 ? 'a' : 'or'} matchar
           </span>
         )}
-        {datumFilter && synligaFakturor.length > 0 && (
+        {filtreratAktivt && synligaFakturor.length > 0 && (
           <Link
             to={`/fakturor/skriv-ut?ids=${synligaFakturor.map((f) => f.id).join(',')}`}
             target="_blank"
@@ -279,9 +344,9 @@ export function InvoiceGroups({
           </Link>
         )}
       </div>
-      {groups.length === 0 && datumFilter && (
+      {groups.length === 0 && filtreratAktivt && (
         <div className="rounded-card border border-line bg-surface px-5 py-6 text-center text-[12.5px] italic text-muted shadow-card">
-          Inga fakturor skickade den {new Date(datumFilter).toLocaleDateString('sv-SE')}.
+          Inga fakturor matchar filtreringen.
         </div>
       )}
       {groups.map((g) => {
