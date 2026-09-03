@@ -344,8 +344,8 @@ export interface FakturaPdfEntry {
   fastighet: Fastighet
 }
 
-/** Genererar en PDF (en sida per faktura) och startar automatisk nedladdning i webbläsaren. */
-export async function laddaNerFakturorSomPdf(entries: FakturaPdfEntry[], objektById: Record<string, Objekt>, filnamn: string) {
+/** Renderar en PDF (en sida per faktura) och returnerar den som en Blob, utan att ladda ner något. */
+export async function byggFakturaPdfBlob(entries: FakturaPdfEntry[], objektById: Record<string, Objekt>): Promise<Blob> {
   const doc = (
     <Document>
       {entries.map((e) => (
@@ -353,7 +353,12 @@ export async function laddaNerFakturorSomPdf(entries: FakturaPdfEntry[], objektB
       ))}
     </Document>
   )
-  const blob = await pdf(doc).toBlob()
+  return pdf(doc).toBlob()
+}
+
+/** Genererar en PDF (en sida per faktura) och startar automatisk nedladdning i webbläsaren. */
+export async function laddaNerFakturorSomPdf(entries: FakturaPdfEntry[], objektById: Record<string, Objekt>, filnamn: string) {
+  const blob = await byggFakturaPdfBlob(entries, objektById)
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

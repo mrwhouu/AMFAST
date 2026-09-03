@@ -37,6 +37,7 @@ export interface Objekt {
   hyresgast: string | null
   hyresgast_orgnr: string | null
   hyresgast_kontakt: string | null
+  hyresgast_epost: string | null
   faktureringsadress: string | null
   area_kvm: number
   kr_per_kvm: number

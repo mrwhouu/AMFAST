@@ -6,6 +6,7 @@ type FormValues = {
   objektnummer: string
   typ: string
   hyresgast: string
+  hyresgast_epost: string
   faktureringsadress: string
   area_kvm: string
   kr_per_kvm: string
@@ -34,6 +35,7 @@ function toValues(o?: Objekt | null): FormValues {
     objektnummer: o?.objektnummer ?? '',
     typ: o?.typ ?? '',
     hyresgast: o?.hyresgast ?? '',
+    hyresgast_epost: o?.hyresgast_epost ?? '',
     faktureringsadress: o?.faktureringsadress ?? '',
     area_kvm: o ? String(o.area_kvm) : '0',
     kr_per_kvm: o ? String(o.kr_per_kvm) : '0',
@@ -87,6 +89,7 @@ export function ObjektFormModal({
       objektnummer: values.objektnummer,
       typ: values.typ,
       hyresgast: values.hyresgast || null,
+      hyresgast_epost: values.hyresgast_epost || null,
       faktureringsadress: values.faktureringsadress || null,
       area_kvm: Number(values.area_kvm) || 0,
       kr_per_kvm: Number(values.kr_per_kvm) || 0,
@@ -153,6 +156,15 @@ export function ObjektFormModal({
               onChange={(e) => set('hyresgast', e.target.value)}
               className="input"
               placeholder="Lämna tomt om vakant"
+            />
+          </Field>
+          <Field label="Hyresgästens e-post" full>
+            <input
+              type="email"
+              value={values.hyresgast_epost}
+              onChange={(e) => set('hyresgast_epost', e.target.value)}
+              className="input"
+              placeholder="För att kunna skicka fakturor via e-post"
             />
           </Field>
           <Field label="Faktureringsadress (postadress)" full>

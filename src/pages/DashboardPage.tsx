@@ -154,6 +154,8 @@ export function DashboardPage() {
           <SectionLabel>Per hyresgäst</SectionLabel>
           <InvoiceGroups
             fakturor={fakturor}
+            fastigheter={fastigheter}
+            objekt={objekt}
             fastighetNamnById={fastighetNamnById}
             canWrite={canWrite}
             onChanged={reload}

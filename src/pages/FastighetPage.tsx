@@ -128,6 +128,8 @@ export function FastighetPage() {
           <SectionLabel>Per hyresgäst</SectionLabel>
           <InvoiceGroups
             fakturor={fakturor}
+            fastigheter={fastighet ? [fastighet] : []}
+            objekt={objekt}
             fastighetNamnById={fastighetNamnById}
             canWrite={canWrite}
             onChanged={reload}
