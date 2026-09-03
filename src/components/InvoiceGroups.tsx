@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
-import type { Faktura, FakturaStatus } from '../types'
+import type { Faktura, FakturaRad, FakturaStatus, Fastighet, Objekt } from '../types'
 import { fmt } from '../utils/format'
+import { buildEml, laddaNerEml } from '../utils/eml'
 
 interface Group {
   hyresgast: string
@@ -119,11 +120,15 @@ function IconButton({
 
 export function InvoiceGroups({
   fakturor,
+  fastigheter,
+  objekt,
   fastighetNamnById,
   canWrite,
   onChanged,
 }: {
   fakturor: Faktura[]
+  fastigheter: Fastighet[]
+  objekt: Objekt[]
   fastighetNamnById: Record<string, string>
   canWrite: (fastighetId: string) => boolean
   onChanged: () => void
@@ -131,6 +136,63 @@ export function InvoiceGroups({
   const [openKey, setOpenKey] = useState<string | null>(null)
   const [marking, setMarking] = useState<string | null>(null)
   const [datumFilter, setDatumFilter] = useState('')
+  const [mailing, setMailing] = useState<string | null>(null)
+
+  const fastighetById = Object.fromEntries(fastigheter.map((f) => [f.id, f]))
+  const objektById = Object.fromEntries(objekt.map((o) => [o.id, o]))
+
+  async function skickaEpost(g: Group) {
+    const epost = g.rows.map((r) => (r.objekt_id ? objektById[r.objekt_id]?.hyresgast_epost : null)).find(Boolean)
+    if (!epost) {
+      alert(`Ingen e-postadress registrerad för ${g.hyresgast}. Lägg till den på objektet i Objekt & kontrakt-fliken.`)
+      return
+    }
+    setMailing(g.hyresgast)
+    try {
+      const { data: raderData, error } = await supabase
+        .from('faktura_rader')
+        .select('*')
+        .in('faktura_id', g.rows.map((r) => r.id))
+        .order('skapad_at')
+      if (error) {
+        alert(error.message)
+        return
+      }
+      const raderByFaktura = new Map<string, FakturaRad[]>()
+      for (const r of raderData ?? []) {
+        const lista = raderByFaktura.get(r.faktura_id)
+        if (lista) lista.push(r)
+        else raderByFaktura.set(r.faktura_id, [r])
+      }
+      const entries = g.rows
+        .map((faktura) => {
+          const fastighet = fastighetById[faktura.fastighet_id]
+          const rader = raderByFaktura.get(faktura.id) ?? []
+          return fastighet && rader.length > 0 ? { faktura, rader, fastighet } : null
+        })
+        .filter((e): e is { faktura: Faktura; rader: FakturaRad[]; fastighet: Fastighet } => !!e)
+      if (entries.length === 0) {
+        alert('Kunde inte hitta fakturarader att bifoga.')
+        return
+      }
+
+      const { byggFakturaPdfBlob } = await import('../pdf/fakturaPdf')
+      const pdfBlob = await byggFakturaPdfBlob(entries, objektById)
+      const perioder = [...new Set(g.rows.map((r) => r.period))].join(', ')
+      const eml = await buildEml({
+        to: epost,
+        subject: `Hyresfaktura – ${g.hyresgast} – ${perioder}`,
+        bodyText:
+          `Hej,\n\nBifogat finner ni hyresfaktura för ${perioder}.\n\n` +
+          `Med vänliga hälsningar\nAMfast Fastighetsförvaltning AB`,
+        attachmentFilename: `Faktura-${g.hyresgast.replace(/[^a-zA-Z0-9åäöÅÄÖ]+/g, '-')}.pdf`,
+        attachmentBlob: pdfBlob,
+      })
+      laddaNerEml(eml, `${g.hyresgast.replace(/[^a-zA-Z0-9åäöÅÄÖ]+/g, '-')}.eml`)
+    } finally {
+      setMailing(null)
+    }
+  }
 
   const synligaFakturor = datumFilter ? fakturor.filter((f) => f.skickad_datum === datumFilter) : fakturor
   const groups = groupInvoices(synligaFakturor, fastighetNamnById)
@@ -251,6 +313,19 @@ export function InvoiceGroups({
                   </span>
                 ))}
                 <span className="font-mono text-sm font-semibold">{fmt(g.total)} kr</span>
+                {canWrite(g.rows[0].fastighet_id) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      skickaEpost(g)
+                    }}
+                    disabled={mailing === g.hyresgast}
+                    title="Skapa ett e-postutkast (.eml) med fakturan bifogad, öppningsbart i Outlook"
+                    className="whitespace-nowrap rounded-full border border-line px-2.5 py-1 text-[11px] font-semibold text-ink-soft hover:border-navy hover:text-navy disabled:opacity-40"
+                  >
+                    {mailing === g.hyresgast ? 'Bygger…' : 'Skicka via e-post'}
+                  </button>
+                )}
                 <svg
                   width="14"
                   height="14"

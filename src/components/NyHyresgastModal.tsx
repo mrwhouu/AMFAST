@@ -8,6 +8,7 @@ type FormValues = {
   hyresgast: string
   hyresgast_orgnr: string
   hyresgast_kontakt: string
+  hyresgast_epost: string
   faktureringsadress: string
   area_kvm: string
   kr_per_kvm: string
@@ -27,6 +28,7 @@ const EMPTY: FormValues = {
   hyresgast: '',
   hyresgast_orgnr: '',
   hyresgast_kontakt: '',
+  hyresgast_epost: '',
   faktureringsadress: '',
   area_kvm: '0',
   kr_per_kvm: '0',
@@ -80,6 +82,7 @@ export function NyHyresgastModal({
       hyresgast: values.hyresgast,
       hyresgast_orgnr: values.hyresgast_orgnr || null,
       hyresgast_kontakt: values.hyresgast_kontakt || null,
+      hyresgast_epost: values.hyresgast_epost || null,
       faktureringsadress: values.faktureringsadress || null,
       area_kvm: Number(values.area_kvm) || 0,
       kr_per_kvm: Number(values.kr_per_kvm) || 0,
@@ -159,6 +162,18 @@ export function NyHyresgastModal({
               Kontaktperson
             </span>
             <input value={values.hyresgast_kontakt} onChange={(e) => set('hyresgast_kontakt', e.target.value)} className="input" />
+          </label>
+          <label className="col-span-2 block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">
+              Hyresgästens e-post
+            </span>
+            <input
+              type="email"
+              value={values.hyresgast_epost}
+              onChange={(e) => set('hyresgast_epost', e.target.value)}
+              className="input"
+              placeholder="För att kunna skicka fakturor via e-post"
+            />
           </label>
           <label className="col-span-2 block">
             <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">
