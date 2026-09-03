@@ -43,6 +43,11 @@ export async function buildEml({
 }): Promise<Blob> {
   const boundary = `----amfast-${Math.random().toString(36).slice(2)}`
   const attachmentBase64 = wrapBase64(await blobToBase64(attachmentBlob))
+  // Brödtexten base64-kodas också (istället för rå "8bit" UTF-8) — annars
+  // gissar vissa e-postklienter (bl.a. Outlook, när en lokal .eml öppnas
+  // direkt utanför en riktig e-postserver) fel teckenkodning och å/ä/ö
+  // blir till "Ã¥/Ã¤/Ã¶"-mojibake. Base64 är entydigt och kan inte feltolkas.
+  const bodyBase64 = wrapBase64(await blobToBase64(new Blob([bodyText], { type: 'text/plain' })))
 
   const eml = [
     `To: ${to}`,
@@ -52,9 +57,9 @@ export async function buildEml({
     '',
     `--${boundary}`,
     'Content-Type: text/plain; charset="utf-8"',
-    'Content-Transfer-Encoding: 8bit',
+    'Content-Transfer-Encoding: base64',
     '',
-    bodyText,
+    bodyBase64,
     '',
     `--${boundary}`,
     'Content-Type: application/pdf',
