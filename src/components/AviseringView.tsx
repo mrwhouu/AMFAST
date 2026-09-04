@@ -234,7 +234,13 @@ export function AviseringView({
       // precis som originalfakturorna alltid utgick från huvudlokalen.
       const primar = gruppRader.reduce((a, b) => (Number(b.belopp) > Number(a.belopp) ? b : a))
       const fakturanummer = `${primar.objekt.objektnummer}-${primar.periodKort}`
-      const belopp = gruppRader.reduce((s, r) => s + (Number(r.belopp) || 0), 0)
+      // fakturor.belopp ska vara det verkliga fakturerade beloppet (inkl. moms),
+      // precis som för de manuellt inlagda originalfakturorna — annars blir
+      // totalsummorna i Fakturor-listan för låga för alla momspliktiga objekt.
+      const totaltExklMoms = gruppRader.reduce((s, r) => s + (Number(r.belopp) || 0), 0)
+      const momspliktigt = gruppRader.filter((r) => r.objekt.momsat).reduce((s, r) => s + (Number(r.belopp) || 0), 0)
+      const moms = Math.round(momspliktigt * 0.25)
+      const belopp = totaltExklMoms + moms
       const anmarkningar = gruppRader.map((r) => r.anmarkning).filter(Boolean)
 
       const { data, error } = await supabase
