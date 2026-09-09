@@ -15,3 +15,14 @@ where objektnummer in (
   '852-2009', -- Paydrive AB
   '852-2010'  -- The Flow E-Networks AB
 );
+
+-- Dessa tre har redan Q4-fakturor (skapade innan momsat rättades), så ta
+-- bort dem för att kunna byggas om med rätt moms via avi-generatorn.
+delete from public.faktura_rader where faktura_id in (
+  select id from public.fakturor
+  where hyresgast in ('Decuria AB', 'Paydrive AB', 'The Flow E-Networks AB')
+    and period in ('Oktober–December 2026', 'Oktober 2026', 'November 2026', 'December 2026')
+);
+delete from public.fakturor
+where hyresgast in ('Decuria AB', 'Paydrive AB', 'The Flow E-Networks AB')
+  and period in ('Oktober–December 2026', 'Oktober 2026', 'November 2026', 'December 2026');
