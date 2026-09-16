@@ -57,6 +57,7 @@ export interface Objekt {
   uppsagning_mottagen: boolean
   uppsagning_datum: string | null
   momsat: boolean
+  uthyrningsbar: boolean
   faktureringsintervall: Faktureringsintervall
   upprakningsmodell: Upprakningsmodell | null
   fast_procent_kvartal: number | null
