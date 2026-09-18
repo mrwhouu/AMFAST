@@ -17,6 +17,17 @@ const STATUS_LABEL: Record<Objekt['status'], string> = {
   avslutat: 'Avslutat',
 }
 
+/** Grön = uthyrd, gul = vakant och uthyrningsbar, röd = vakant och kräver upprustning. */
+function uthyrningsplupp(o: Objekt): { color: string; title: string } {
+  if (o.status === 'uthyrd') return { color: 'bg-green', title: 'Uthyrd' }
+  if (o.status === 'vakant') {
+    return o.uthyrningsbar
+      ? { color: 'bg-amber', title: 'Vakant — uthyrningsbar' }
+      : { color: 'bg-wine', title: 'Vakant — kräver upprustning' }
+  }
+  return { color: 'bg-muted', title: 'Avslutat' }
+}
+
 export function ObjectTable({
   objekt,
   drifttillaggByObjekt = {},
@@ -72,7 +83,16 @@ export function ObjectTable({
                 return (
                   <Fragment key={o.id}>
                     <tr className="border-b border-line-soft last:border-none hover:bg-[#FAFBFD]">
-                      <td className="px-3.5 py-2.5 font-mono font-semibold text-navy">{o.objektnummer}</td>
+                      <td className="px-3.5 py-2.5 font-mono font-semibold text-navy">
+                        <span className="inline-flex items-center gap-2">
+                          <span
+                            className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${uthyrningsplupp(o).color}`}
+                            title={uthyrningsplupp(o).title}
+                            aria-label={uthyrningsplupp(o).title}
+                          />
+                          {o.objektnummer}
+                        </span>
+                      </td>
                       <td className="px-3.5 py-2.5">{o.typ}</td>
                       <td className="px-3.5 py-2.5">
                         {o.hyresgast ?? <span className="italic text-muted">Outhyrt</span>}
