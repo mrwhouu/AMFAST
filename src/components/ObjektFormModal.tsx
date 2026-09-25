@@ -15,6 +15,7 @@ type FormValues = {
   ovrigt_ar: string
   status: ObjektStatus
   vakanshyra_ar: string
+  uthyrningsbar: boolean
   kontrakt_fran: string
   kontrakt_tom: string
   gata: string
@@ -44,6 +45,7 @@ function toValues(o?: Objekt | null): FormValues {
     ovrigt_ar: o ? String(o.ovrigt_ar) : '0',
     status: o?.status ?? 'vakant',
     vakanshyra_ar: o?.vakanshyra_ar != null ? String(o.vakanshyra_ar) : '0',
+    uthyrningsbar: o?.uthyrningsbar ?? true,
     kontrakt_fran: o?.kontrakt_fran ?? '',
     kontrakt_tom: o?.kontrakt_tom ?? '',
     gata: o?.gata ?? '',
@@ -98,6 +100,7 @@ export function ObjektFormModal({
       ovrigt_ar: Number(values.ovrigt_ar) || 0,
       status: values.status,
       vakanshyra_ar: values.status === 'vakant' ? Number(values.vakanshyra_ar) || 0 : null,
+      uthyrningsbar: values.uthyrningsbar,
       kontrakt_fran: values.kontrakt_fran || null,
       kontrakt_tom: values.kontrakt_tom || null,
       gata: values.gata || null,
@@ -238,6 +241,18 @@ export function ObjektFormModal({
                 onChange={(e) => set('vakanshyra_ar', e.target.value)}
                 className="input"
               />
+            </Field>
+          )}
+          {values.status === 'vakant' && (
+            <Field label="Skick">
+              <label className="flex h-[38px] items-center gap-2 text-[12.5px] text-ink-soft">
+                <input
+                  type="checkbox"
+                  checked={values.uthyrningsbar}
+                  onChange={(e) => set('uthyrningsbar', e.target.checked)}
+                />
+                Uthyrningsbar i nuvarande skick
+              </label>
             </Field>
           )}
           <Field label="Kontrakt fr.o.m">

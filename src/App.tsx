@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { ConfigMissing } from './components/ConfigMissing'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import { LoginPage } from './pages/LoginPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { FastighetPage } from './pages/FastighetPage'
 import { AdminPage } from './pages/AdminPage'
@@ -17,6 +18,7 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/aterstall-losenord" element={<ResetPasswordPage />} />
         <Route
           path="/"
           element={

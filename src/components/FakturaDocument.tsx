@@ -37,6 +37,10 @@ export function FakturaDocument({
   const objektGata = objektForFaktura?.gata ?? null
   const faktureringsadress = objektForFaktura?.faktureringsadress ?? null
   const referensRader = erReferensRader(faktureringsadress)
+  // Saknas en separat faktureringsadress (vanligt för privatpersoner) duger
+  // objektets egen adress som postadress — bara om även den saknas är
+  // fakturan faktiskt opostbar.
+  const postAdress = faktureringsadress ?? (objektGata ? `${fastighet.namn}\n${objektGata}` : null)
 
   return (
     <div className="mx-auto max-w-[210mm] bg-white p-[16mm] text-[13px] text-ink print:p-0 print:shadow-none">
@@ -80,8 +84,8 @@ export function FakturaDocument({
       <div className="mt-4">
         <div className="mb-1 text-[12.5px] font-semibold uppercase tracking-wide text-muted">Faktureringsadress</div>
         <div className="text-[13px] font-medium">{faktura.hyresgast}</div>
-        {faktureringsadress ? (
-          <div className="whitespace-pre-line text-muted">{faktureringsadress}</div>
+        {postAdress ? (
+          <div className="whitespace-pre-line text-muted">{postAdress}</div>
         ) : (
           <div className="text-[11.5px] italic text-wine">Ingen faktureringsadress angiven — kan ej postas</div>
         )}
@@ -186,7 +190,7 @@ export function FakturaDocument({
             <div className="text-[11px]">
               <div className="mb-1 text-muted">Betalningsavsändare</div>
               <div className="font-semibold text-ink">{faktura.hyresgast}</div>
-              {faktureringsadress && <div className="whitespace-pre-line text-muted">{faktureringsadress}</div>}
+              {postAdress && <div className="whitespace-pre-line text-muted">{postAdress}</div>}
             </div>
             <table className="text-[11px]">
               <tbody>

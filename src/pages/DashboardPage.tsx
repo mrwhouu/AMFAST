@@ -45,6 +45,21 @@ export function DashboardPage() {
     [fastigheter],
   )
 
+  /** Fastigheter grupperade per ägare (t.ex. alla Lindesås-hus tillsammans), i den ordning ägaren först förekommer. */
+  const fastigheterByAgare = useMemo(() => {
+    const grupper: { agare: string; fastigheter: typeof fastigheter }[] = []
+    const index = new Map<string, number>()
+    for (const f of fastigheter) {
+      const agare = f.agare ?? 'Okänd ägare'
+      if (!index.has(agare)) {
+        index.set(agare, grupper.length)
+        grupper.push({ agare, fastigheter: [] })
+      }
+      grupper[index.get(agare)!].fastigheter.push(f)
+    }
+    return grupper
+  }, [fastigheter])
+
   const drifttillaggByObjekt = useMemo(() => {
     const map: Record<string, typeof drifttillagg> = {}
     for (const d of drifttillagg) (map[d.objekt_id] ??= []).push(d)
@@ -106,17 +121,22 @@ export function DashboardPage() {
 
       {tab === 'oversikt' && (
         <div>
-          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {fastigheter.map((f, i) => (
-              <PropertyCard
-                key={f.id}
-                fastighet={f}
-                objekt={objektByFastighet.get(f.id) ?? []}
-                drifttillaggSummaByObjekt={drifttillaggSummaByObjekt}
-                colorIndex={i}
-              />
-            ))}
-          </div>
+          {fastigheterByAgare.map((grupp) => (
+            <div key={grupp.agare}>
+              <SectionLabel>{grupp.agare}</SectionLabel>
+              <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {grupp.fastigheter.map((f, i) => (
+                  <PropertyCard
+                    key={f.id}
+                    fastighet={f}
+                    objekt={objektByFastighet.get(f.id) ?? []}
+                    drifttillaggSummaByObjekt={drifttillaggSummaByObjekt}
+                    colorIndex={i}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
           <SectionLabel>Kräver uppmärksamhet</SectionLabel>
           <PaminnelserPanel
             paminnelser={paminnelser}

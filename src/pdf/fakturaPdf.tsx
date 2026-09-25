@@ -145,6 +145,10 @@ export function FakturaPdfSida({
   const objektGata = objektForFaktura?.gata ?? null
   const faktureringsadress = objektForFaktura?.faktureringsadress ?? null
   const referensRader = erReferensRader(faktureringsadress)
+  // Saknas en separat faktureringsadress (vanligt för privatpersoner) duger
+  // objektets egen adress som postadress — bara om även den saknas är
+  // fakturan faktiskt opostbar.
+  const postAdress = faktureringsadress ?? (objektGata ? `${fastighet.namn}\n${objektGata}` : null)
 
   return (
     <Page size="A4" style={styles.page}>
@@ -158,8 +162,8 @@ export function FakturaPdfSida({
       {/* Mottagaradress i fönsterkuvertets fönster — se WINDOW_*-konstanterna ovan. */}
       <View style={styles.windowAddress}>
         <Text style={{ fontFamily: 'Helvetica-Bold' }}>{faktura.hyresgast}</Text>
-        {faktureringsadress ? (
-          <AddressLines text={faktureringsadress} style={{ color: MUTED }} />
+        {postAdress ? (
+          <AddressLines text={postAdress} style={{ color: MUTED }} />
         ) : (
           <Text style={{ fontSize: 8.5, fontStyle: 'italic', color: WINE }}>
             Ingen faktureringsadress angiven — kan ej postas
@@ -197,7 +201,7 @@ export function FakturaPdfSida({
         <View style={styles.section}>
           <Text style={styles.label}>Faktureringsadress</Text>
           <Text style={{ fontFamily: 'Helvetica-Bold' }}>{faktura.hyresgast}</Text>
-          {faktureringsadress && <AddressLines text={faktureringsadress} style={{ color: MUTED }} />}
+          {postAdress && <AddressLines text={postAdress} style={{ color: MUTED }} />}
           {faktura.objektnummer && <Text style={{ fontFamily: 'Courier', fontSize: 8.5, color: MUTED }}>Objekt {faktura.objektnummer}</Text>}
         </View>
 
@@ -289,7 +293,7 @@ export function FakturaPdfSida({
               <View style={styles.payBoxSenderCol}>
                 <Text style={styles.footerLabel}>Betalningsavsändare</Text>
                 <Text style={{ fontFamily: 'Helvetica-Bold', color: INK }}>{faktura.hyresgast}</Text>
-                {faktureringsadress && <AddressLines text={faktureringsadress} />}
+                {postAdress && <AddressLines text={postAdress} />}
               </View>
               <View>
                 <View style={styles.payBoxRow}>
