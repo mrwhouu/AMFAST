@@ -9,6 +9,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [mode, setMode] = useState<'login' | 'glomt' | 'skickat'>('login')
 
   if (!loading && session) return <Navigate to="/" replace />
 
@@ -19,6 +20,20 @@ export function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     setSubmitting(false)
     if (error) setError('Fel e-post eller lösenord.')
+  }
+
+  async function handleGlomtLosenord(e: FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setSubmitting(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/aterstall-losenord`,
+    })
+    setSubmitting(false)
+    // Visa alltid samma bekräftelse oavsett om mejlen finns — annars kan
+    // formuläret användas för att kolla vilka e-postadresser som är registrerade.
+    if (error) console.error('Kunde inte skicka återställningsmejl', error)
+    setMode('skickat')
   }
 
   return (
@@ -36,53 +51,121 @@ export function LoginPage() {
           </div>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-[10px] border border-line bg-surface p-7 shadow-card"
-        >
-          <h1 className="mb-1 font-display text-xl font-semibold text-ink">Logga in</h1>
-          <p className="mb-5 text-sm text-muted">Ange dina inloggningsuppgifter för portalen.</p>
-
-          <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">
-            E-post
-          </label>
-          <input
-            type="email"
-            required
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mb-4 w-full rounded-[8px] border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-navy"
-            placeholder="namn@amfast.se"
-          />
-
-          <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">
-            Lösenord
-          </label>
-          <input
-            type="password"
-            required
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mb-4 w-full rounded-[8px] border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-navy"
-            placeholder="••••••••"
-          />
-
-          {error && (
-            <div className="mb-4 rounded-[8px] bg-wine-soft px-3 py-2 text-[12.5px] font-medium text-wine">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-[8px] bg-navy px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-navy-deep disabled:opacity-60"
+        {mode === 'skickat' ? (
+          <div className="rounded-[10px] border border-line bg-surface p-7 shadow-card">
+            <h1 className="mb-1 font-display text-xl font-semibold text-ink">Kolla din e-post</h1>
+            <p className="text-sm text-muted">
+              Om <span className="font-semibold text-ink">{email}</span> finns registrerad har vi
+              skickat en länk dit för att återställa lösenordet. Klicka på länken i mejlet för att
+              välja ett nytt lösenord.
+            </p>
+            <button
+              onClick={() => setMode('login')}
+              className="mt-5 text-[12.5px] font-semibold text-navy hover:text-gold"
+            >
+              ← Tillbaka till inloggning
+            </button>
+          </div>
+        ) : mode === 'glomt' ? (
+          <form
+            onSubmit={handleGlomtLosenord}
+            className="rounded-[10px] border border-line bg-surface p-7 shadow-card"
           >
-            {submitting ? 'Loggar in…' : 'Logga in'}
-          </button>
-        </form>
+            <h1 className="mb-1 font-display text-xl font-semibold text-ink">Glömt lösenord</h1>
+            <p className="mb-5 text-sm text-muted">
+              Ange din e-post så skickar vi en länk för att välja ett nytt lösenord.
+            </p>
+
+            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">
+              E-post
+            </label>
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mb-4 w-full rounded-[8px] border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-navy"
+              placeholder="namn@amfast.se"
+            />
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full rounded-[8px] bg-navy px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-navy-deep disabled:opacity-60"
+            >
+              {submitting ? 'Skickar…' : 'Skicka återställningslänk'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMode('login')}
+              className="mt-4 block w-full text-center text-[12.5px] font-semibold text-navy hover:text-gold"
+            >
+              ← Tillbaka till inloggning
+            </button>
+          </form>
+        ) : (
+          <form
+            onSubmit={handleSubmit}
+            className="rounded-[10px] border border-line bg-surface p-7 shadow-card"
+          >
+            <h1 className="mb-1 font-display text-xl font-semibold text-ink">Logga in</h1>
+            <p className="mb-5 text-sm text-muted">Ange dina inloggningsuppgifter för portalen.</p>
+
+            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">
+              E-post
+            </label>
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mb-4 w-full rounded-[8px] border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-navy"
+              placeholder="namn@amfast.se"
+            />
+
+            <div className="mb-1 flex items-center justify-between">
+              <label className="block text-[11px] font-semibold uppercase tracking-wide text-muted">
+                Lösenord
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null)
+                  setMode('glomt')
+                }}
+                className="text-[11.5px] font-semibold text-navy hover:text-gold"
+              >
+                Glömt lösenord?
+              </button>
+            </div>
+            <input
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mb-4 w-full rounded-[8px] border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-navy"
+              placeholder="••••••••"
+            />
+
+            {error && (
+              <div className="mb-4 rounded-[8px] bg-wine-soft px-3 py-2 text-[12.5px] font-medium text-wine">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full rounded-[8px] bg-navy px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-navy-deep disabled:opacity-60"
+            >
+              {submitting ? 'Loggar in…' : 'Logga in'}
+            </button>
+          </form>
+        )}
 
         <p className="mt-4 text-center text-[11.5px] text-muted">
           Kontakta din förvaltare för att få ett konto.
